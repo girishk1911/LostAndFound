@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Tab } from '@headlessui/react';
 import { AuthContext } from '../context/AuthContext';
 import { getAllItems, deleteItem } from '../services/itemService';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import EditItemModal from '../components/EditItemModal';
 import EditClaimedItemModal from '../components/EditClaimedItemModal';
+import ClaimDetailsModal from '../components/ClaimDetailsModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import SuccessModal from '../components/SuccessModal';
-import { formatDate } from '../utils/dateUtils';
+import { formatDate, formatDateTime } from '../utils/dateUtils';
 import SearchBar from '../components/SearchBar';
 
 function classNames(...classes) {
@@ -17,6 +18,7 @@ function classNames(...classes) {
 
 const GuardDashboard = () => {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,35 +27,35 @@ const GuardDashboard = () => {
   // State for modals
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editClaimedModalOpen, setEditClaimedModalOpen] = useState(false);
+  const [claimDetailsModalOpen, setClaimDetailsModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
-    const fetchItems = async () => {
-      try {
-        setLoading(true);
-        const data = await getAllItems(true);
-        
-        // Log a sample of the data to verify foundDate
-        if (data && data.length > 0) {
-          console.log('Sample item:', data[0]);
-          console.log('Item foundDate:', data[0].foundDate);
-          console.log('Formatted foundDate:', formatDate(data[0].foundDate));
-        }
-        
-        setItems(data);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching items:', err);
-        setError('Failed to fetch items');
-        setLoading(false);
-      }
-    };
-
     fetchItems();
   }, []);
+
+  const fetchItems = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllItems(true);
+      
+      // Log a sample of the data to verify claims
+      if (data && data.length > 0) {
+        console.log('Sample item:', data[0]);
+        console.log('Item claims:', data[0].claims);
+      }
+      
+      setItems(data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching items:', err);
+      setError('Failed to fetch items');
+      setLoading(false);
+    }
+  };
 
   const handleSearch = (term) => {
     setSearchTerm(term);
@@ -72,7 +74,8 @@ const GuardDashboard = () => {
   });
 
   // Handle opening edit modal
-  const handleEditClick = (item) => {
+  const handleEditClick = (e, item) => {
+    e.stopPropagation(); // Prevent row click event
     // Only allow editing available items
     if (item.status !== 'available') {
       setSuccessMessage('Only available items can be edited');
@@ -85,7 +88,8 @@ const GuardDashboard = () => {
   };
 
   // Handle opening edit claimed item modal
-  const handleEditClaimedClick = (item) => {
+  const handleEditClaimedClick = (e, item) => {
+    e.stopPropagation(); // Prevent row click event
     if (item.status !== 'claimed') {
       setSuccessMessage('Only claimed items can be edited');
       setSuccessModalOpen(true);
@@ -95,21 +99,27 @@ const GuardDashboard = () => {
     setSelectedItem(item);
     setEditClaimedModalOpen(true);
   };
+  
+  // Handle opening claims details modal
+  const handleViewClaimsClick = (item) => {
+    setSelectedItem(item);
+    setClaimDetailsModalOpen(true);
+  };
+  
+  // Handle row click
+  const handleRowClick = (item) => {
+    navigate(`/lost-items/${item._id}`);
+  };
 
   // Handle opening delete confirmation modal
-  const handleDeleteClick = (item) => {
+  const handleDeleteClick = (e, item) => {
+    e.stopPropagation(); // Prevent row click event
     setSelectedItem(item);
     setDeleteModalOpen(true);
   };
 
   // Handle successful item edit
   const handleEditSuccess = () => {
-    // Update the items list with the edited item
-    setItems(items.map(item => 
-      item._id === selectedItem._id 
-        ? { ...item, ...selectedItem } 
-        : item
-    ));
     setEditModalOpen(false);
     setSuccessMessage('Item updated successfully!');
     setSuccessModalOpen(true);
@@ -121,7 +131,17 @@ const GuardDashboard = () => {
   // Handle successful claimed item edit
   const handleEditClaimedSuccess = () => {
     setEditClaimedModalOpen(false);
-    setSuccessMessage('Item and student information updated successfully!');
+    setSuccessMessage('Item details updated successfully!');
+    setSuccessModalOpen(true);
+    
+    // Refresh the items list
+    fetchItems();
+  };
+  
+  // Handle successful delivery
+  const handleDeliverySuccess = () => {
+    setClaimDetailsModalOpen(false);
+    setSuccessMessage('Item has been marked as delivered successfully!');
     setSuccessModalOpen(true);
     
     // Refresh the items list
@@ -140,16 +160,6 @@ const GuardDashboard = () => {
     }
   };
 
-  // Fetch items helper function (reusable)
-  const fetchItems = async () => {
-    try {
-      const data = await getAllItems(true);
-      setItems(data);
-    } catch (err) {
-      setError('Failed to fetch items');
-    }
-  };
-
   // Get the proper image URL
   const getImageUrl = (imagePath) => {
     if (!imagePath) return '/assets/images/placeholder.png';
@@ -159,6 +169,30 @@ const GuardDashboard = () => {
     
     // Otherwise, prepend the server URL
     return `http://localhost:5000${imagePath}`;
+  };
+  
+  // Get claim count for an item
+  const getClaimsCount = (item) => {
+    return item.claims?.length || 0;
+  };
+
+  // Add a function to check if verification time is today or tomorrow
+  const isUpcomingVerification = (verificationDateTime) => {
+    if (!verificationDateTime) return false;
+    
+    const now = new Date();
+    const verification = new Date(verificationDateTime);
+    
+    // Set time to midnight for date comparison
+    const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const verificationDate = new Date(verification.getFullYear(), verification.getMonth(), verification.getDate());
+    
+    // Calculate difference in days
+    const diffTime = verificationDate - nowDate;
+    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+    
+    // Return true if verification is today or tomorrow
+    return diffDays >= 0 && diffDays <= 1;
   };
 
   if (loading) return <div className="flex justify-center items-center h-screen">Loading dashboard...</div>;
@@ -241,7 +275,11 @@ const GuardDashboard = () => {
                 <tbody>
                   {filteredItems.length > 0 ? (
                     filteredItems.map(item => (
-                      <tr key={item._id} className="border-b border-gray-200 hover:bg-gray-50">
+                      <tr 
+                        key={item._id} 
+                        className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer"
+                        onClick={() => handleRowClick(item)}
+                      >
                         <td className="py-3 px-4">
                           <img
                             src={getImageUrl(item.image)}
@@ -257,40 +295,49 @@ const GuardDashboard = () => {
                         <td className="py-3 px-4">{item.category}</td>
                         <td className="py-3 px-4">{formatDate(item.foundDate)}</td>
                         <td className="py-3 px-4">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            item.status === 'delivered' 
-                              ? 'bg-green-100 text-green-800' 
-                              : item.status === 'claimed'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}>
+                          <span className={`
+                            px-2 py-1 text-xs rounded-full
+                            ${item.status === 'available' ? 'bg-green-100 text-green-800' : 
+                              item.status === 'claimed' ? 'bg-blue-100 text-blue-800' : 
+                              'bg-purple-100 text-purple-800'}
+                          `}>
                             {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                            
+                            {/* Show claims count for claimed items */}
+                            {item.status === 'claimed' && getClaimsCount(item) > 0 && (
+                              <span className="ml-1">
+                                ({getClaimsCount(item)})
+                              </span>
+                            )}
                           </span>
                         </td>
                         <td className="py-3 px-4">
-                          <div className="flex space-x-3">
+                          <div className="flex space-x-3" onClick={(e) => e.stopPropagation()}>
                             {item.status === 'available' ? (
                               <button 
-                                onClick={() => handleEditClick(item)} 
+                                onClick={(e) => handleEditClick(e, item)} 
                                 className="text-blue-600 hover:text-blue-800"
                                 title="Edit item"
                               >
                                 <PencilIcon className="h-5 w-5" />
                               </button>
                             ) : item.status === 'claimed' ? (
-                              <button 
-                                onClick={() => handleEditClaimedClick(item)} 
-                                className="text-blue-600 hover:text-blue-800"
-                                title="Edit item and student information"
-                              >
-                                <PencilIcon className="h-5 w-5" />
-                              </button>
+                              <>
+                                <button 
+                                  onClick={(e) => handleEditClaimedClick(e, item)} 
+                                  className="text-blue-600 hover:text-blue-800"
+                                  title="Edit item details"
+                                >
+                                  <PencilIcon className="h-5 w-5" />
+                                </button>
+                              </>
                             ) : null}
                             
                             {item.status !== 'delivered' && (
                               <button 
-                                onClick={() => handleDeleteClick(item)} 
+                                onClick={(e) => handleDeleteClick(e, item)} 
                                 className="text-red-600 hover:text-red-800"
+                                title="Delete item"
                               >
                                 <TrashIcon className="h-5 w-5" />
                               </button>
@@ -313,6 +360,11 @@ const GuardDashboard = () => {
           
           <Tab.Panel>
             <div className="overflow-x-auto">
+              <div className="mb-4 text-sm bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <p className="text-blue-800">
+                  <span className="font-medium">Note:</span> Items are sorted by verification time, with the earliest time at the top.
+                </p>
+              </div>
               <table className="min-w-full bg-white rounded-lg overflow-hidden shadow-lg">
                 <thead className="bg-gray-100">
                   <tr>
@@ -320,17 +372,26 @@ const GuardDashboard = () => {
                     <th className="py-3 px-4 text-left">Item Name</th>
                     <th className="py-3 px-4 text-left">Category</th>
                     <th className="py-3 px-4 text-left">Found Date</th>
-                    <th className="py-3 px-4 text-left">Claimed By</th>
-                    <th className="py-3 px-4 text-left">Claimed Date</th>
-                    <th className="py-3 px-4 text-left">Actions</th>
+                    <th className="py-3 px-4 text-left">Claims</th>
+                    <th className="py-3 px-4 text-left">Verification Time</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredItems.filter(item => item.status === 'claimed').length > 0 ? (
                     filteredItems
                       .filter(item => item.status === 'claimed')
+                      .sort((a, b) => {
+                        // Sort by verification time (ascending) - earliest first
+                        const dateA = new Date(a.verificationDateTime);
+                        const dateB = new Date(b.verificationDateTime);
+                        return dateA - dateB;
+                      })
                       .map(item => (
-                        <tr key={item._id} className="border-b border-gray-200 hover:bg-gray-50">
+                        <tr 
+                          key={item._id} 
+                          className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer"
+                          onClick={() => handleViewClaimsClick(item)}
+                        >
                           <td className="py-3 px-4">
                             <img
                               src={getImageUrl(item.image)}
@@ -346,36 +407,20 @@ const GuardDashboard = () => {
                           <td className="py-3 px-4">{item.category}</td>
                           <td className="py-3 px-4">{formatDate(item.foundDate)}</td>
                           <td className="py-3 px-4">
-                            {item.claimedBy?.studentName}<br/>
-                            <span className="text-xs text-gray-500">
-                              {item.claimedBy?.rollNumber}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            {formatDate(item.claimedBy?.claimedDate)}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex space-x-3">
-                              <button 
-                                onClick={() => handleEditClaimedClick(item)} 
-                                className="text-blue-600 hover:text-blue-800"
-                                title="Edit item and student information"
-                              >
-                                <PencilIcon className="h-5 w-5" />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteClick(item)} 
-                                className="text-red-600 hover:text-red-800"
-                              >
-                                <TrashIcon className="h-5 w-5" />
-                              </button>
+                            <div className="flex items-center">
+                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
+                                {getClaimsCount(item)} {getClaimsCount(item) === 1 ? 'claim' : 'claims'}
+                              </span>
                             </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            {formatDateTime(item.verificationDateTime)}
                           </td>
                         </tr>
                       ))
                   ) : (
                     <tr>
-                      <td colSpan="7" className="py-8 text-center text-gray-500">
+                      <td colSpan="6" className="py-8 text-center text-gray-500">
                         No claimed items found
                       </td>
                     </tr>
@@ -393,9 +438,8 @@ const GuardDashboard = () => {
                     <th className="py-3 px-4 text-left">Image</th>
                     <th className="py-3 px-4 text-left">Item Name</th>
                     <th className="py-3 px-4 text-left">Category</th>
-                    <th className="py-3 px-4 text-left">Claimed By</th>
-                    <th className="py-3 px-4 text-left">Claimed Date</th>
-                    <th className="py-3 px-4 text-left">Actions</th>
+                    <th className="py-3 px-4 text-left">Delivered To</th>
+                    <th className="py-3 px-4 text-left">Delivery Date</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -403,7 +447,11 @@ const GuardDashboard = () => {
                     filteredItems
                       .filter(item => item.status === 'delivered')
                       .map(item => (
-                        <tr key={item._id} className="border-b border-gray-200 hover:bg-gray-50">
+                        <tr 
+                          key={item._id} 
+                          className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer"
+                          onClick={() => navigate(`/lost-items/${item._id}`)}
+                        >
                           <td className="py-3 px-4">
                             <img
                               src={getImageUrl(item.image)}
@@ -418,24 +466,28 @@ const GuardDashboard = () => {
                           <td className="py-3 px-4 font-medium">{item.name}</td>
                           <td className="py-3 px-4">{item.category}</td>
                           <td className="py-3 px-4">
-                            {item.claimedBy?.studentName}<br/>
-                            <span className="text-xs text-gray-500">
-                              {item.claimedBy?.rollNumber} ({item.claimedBy?.studyYear})
-                            </span>
+                            {item.deliveredTo ? (
+                              <span className="font-medium">
+                                {item.deliveredTo.studentName || 
+                                 item.deliveredTo.staffName || 
+                                 item.deliveredTo.guardName || 
+                                 item.deliveredTo.helperName || 
+                                 item.claimedBy?.studentName || 
+                                 item.claimedBy?.staffName || 
+                                 "Unknown Claimant"}
+                              </span>
+                            ) : (
+                              <span className="text-gray-500">Information not available</span>
+                            )}
                           </td>
                           <td className="py-3 px-4">
-                            {formatDate(item.claimedBy?.claimedDate)}
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex space-x-3">
-                              {/* No edit button for delivered items */}
-                            </div>
+                            {formatDate(item.deliveredTo?.deliveryDate)}
                           </td>
                         </tr>
                       ))
                   ) : (
                     <tr>
-                      <td colSpan="6" className="py-8 text-center text-gray-500">
+                      <td colSpan="5" className="py-8 text-center text-gray-500">
                         No delivered items found
                       </td>
                     </tr>
@@ -464,6 +516,16 @@ const GuardDashboard = () => {
           onClose={() => setEditClaimedModalOpen(false)}
           item={selectedItem}
           onSuccess={handleEditClaimedSuccess}
+        />
+      )}
+      
+      {/* Claim Details Modal */}
+      {selectedItem && (
+        <ClaimDetailsModal
+          isOpen={claimDetailsModalOpen}
+          onClose={() => setClaimDetailsModalOpen(false)}
+          item={selectedItem}
+          onSuccess={handleDeliverySuccess}
         />
       )}
       

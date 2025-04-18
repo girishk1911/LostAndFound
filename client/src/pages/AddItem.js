@@ -13,7 +13,22 @@ const AddItem = () => {
     description: '',
     location: '',
     foundDate: new Date().toISOString().split('T')[0], // Keep this in YYYY-MM-DD format for input[type=date]
-    status: 'available'
+    status: 'available',
+    contributor: {
+      userType: 'Student',
+      studentName: '',
+      rollNumber: '',
+      department: '',
+      studyYear: '',
+      // Staff fields
+      staffName: '',
+      staffDepartment: '',
+      mobileNo: '',
+      // Guard & Helper fields
+      guardName: '',
+      helperName: '',
+      email: ''
+    }
   });
   
   const [loading, setLoading] = useState(false);
@@ -59,6 +74,28 @@ const AddItem = () => {
     'Other'
   ];
 
+  // Study years
+  const studyYears = [
+    'First Year',
+    'Second Year',
+    'Third Year',
+    'Fourth Year'
+  ];
+  
+  // Departments
+  const departments = [
+    'Computer Engineering',
+    'Information Technology',
+    'Electronics & Telecommunication',
+    'AI & DS',
+    'ECE',
+    'Administration',
+    'Accounts',
+    'Library',
+    'Placement Cell',
+    'Other'
+  ];
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     
@@ -78,10 +115,40 @@ const AddItem = () => {
       }
     }
     
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+    // Validate roll number (must be exactly 5 digits)
+    if (name === 'contributor.rollNumber') {
+      if (value && !/^\d{0,5}$/.test(value)) {
+        toast.error('Roll number must be numeric and maximum 5 digits');
+        return;
+      }
+    }
+    
+    // Validate mobile number (must be exactly 10 digits)
+    if (name === 'contributor.mobileNo') {
+      if (value && !/^\d{0,10}$/.test(value)) {
+        toast.error('Mobile number must be numeric and maximum 10 digits');
+        return;
+      }
+    }
+    
+    // Don't validate email format during typing, only store the value
+    // Email will be validated on form submission instead
+    
+    if (name.startsWith('contributor.')) {
+      const contributorField = name.split('.')[1];
+      setFormData({
+        ...formData,
+        contributor: {
+          ...formData.contributor,
+          [contributorField]: value
+        }
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
   };
 
   const handleImageClick = () => {
@@ -132,6 +199,37 @@ const AddItem = () => {
       return;
     }
     
+    // Validate contributor data based on userType
+    const { userType } = formData.contributor;
+    
+    if (userType === 'Student' && formData.contributor.studentName) {
+      // Validate roll number if provided for student
+      if (formData.contributor.rollNumber && !/^\d{5}$/.test(formData.contributor.rollNumber)) {
+        toast.error('Roll number must be exactly 5 digits');
+        return;
+      }
+    } else if (userType === 'Staff' && formData.contributor.staffName) {
+      // Validate required fields for staff
+      if (!formData.contributor.staffDepartment) {
+        toast.error('Please provide department for staff contributor');
+        return;
+      }
+      // Validate mobile number for staff
+      if (formData.contributor.mobileNo && !/^\d{10}$/.test(formData.contributor.mobileNo)) {
+        toast.error('Mobile number must be exactly 10 digits');
+        return;
+      }
+    }
+    
+    // Validate email format if provided for any contributor type
+    if (formData.contributor.email) {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(formData.contributor.email)) {
+        toast.error('Please enter a valid email address');
+        return;
+      }
+    }
+    
     setLoading(true);
     
     try {
@@ -142,6 +240,33 @@ const AddItem = () => {
       itemFormData.append('category', formData.category);
       itemFormData.append('description', formData.description);
       itemFormData.append('location', formData.location);
+      
+      // Add contributor information based on userType
+      const { contributor } = formData;
+      if (contributor.userType) {
+        itemFormData.append('contributor[userType]', contributor.userType);
+        
+        if (contributor.userType === 'Student' && contributor.studentName) {
+          itemFormData.append('contributor[studentName]', contributor.studentName);
+          itemFormData.append('contributor[rollNumber]', contributor.rollNumber);
+          itemFormData.append('contributor[department]', contributor.department);
+          itemFormData.append('contributor[studyYear]', contributor.studyYear);
+        } 
+        else if (contributor.userType === 'Staff' && contributor.staffName) {
+          itemFormData.append('contributor[staffName]', contributor.staffName);
+          itemFormData.append('contributor[staffDepartment]', contributor.staffDepartment);
+          itemFormData.append('contributor[mobileNo]', contributor.mobileNo);
+          itemFormData.append('contributor[email]', contributor.email);
+        }
+        else if (contributor.userType === 'Guard' && contributor.guardName) {
+          itemFormData.append('contributor[guardName]', contributor.guardName);
+          itemFormData.append('contributor[email]', contributor.email);
+        }
+        else if (contributor.userType === 'Helper' && contributor.helperName) {
+          itemFormData.append('contributor[helperName]', contributor.helperName);
+          itemFormData.append('contributor[email]', contributor.email);
+        }
+      }
       
       // Ensure foundDate is sent as ISO string with the selected date
       console.log('Selected date from form:', formData.foundDate);
@@ -203,6 +328,223 @@ const AddItem = () => {
       toast.error(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Render contributor form fields based on selected contributor type
+  const renderContributorFields = () => {
+    const { userType } = formData.contributor;
+    
+    if (userType === 'Student') {
+      return (
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <label htmlFor="contributor.studentName" className="block text-gray-700 text-sm font-bold mb-2">
+              Student Name
+            </label>
+            <input
+              type="text"
+              id="contributor.studentName"
+              name="contributor.studentName"
+              value={formData.contributor.studentName}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., John Doe"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="contributor.rollNumber" className="block text-gray-700 text-sm font-bold mb-2">
+              Roll Number
+            </label>
+            <input
+              type="text"
+              id="contributor.rollNumber"
+              name="contributor.rollNumber"
+              value={formData.contributor.rollNumber}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., 12345"
+              maxLength={5}
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="contributor.department" className="block text-gray-700 text-sm font-bold mb-2">
+              Department
+            </label>
+            <select
+              id="contributor.department"
+              name="contributor.department"
+              value={formData.contributor.department}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="" disabled>Select department</option>
+              {departments.map((department, index) => (
+                <option key={index} value={department}>{department}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label htmlFor="contributor.studyYear" className="block text-gray-700 text-sm font-bold mb-2">
+              Study Year
+            </label>
+            <select
+              id="contributor.studyYear"
+              name="contributor.studyYear"
+              value={formData.contributor.studyYear}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="" disabled>Select year</option>
+              {studyYears.map((year, index) => (
+                <option key={index} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      );
+    } 
+    else if (userType === 'Staff') {
+      return (
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <label htmlFor="contributor.staffName" className="block text-gray-700 text-sm font-bold mb-2">
+              Staff Name
+            </label>
+            <input
+              type="text"
+              id="contributor.staffName"
+              name="contributor.staffName"
+              value={formData.contributor.staffName}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., John Doe"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="contributor.staffDepartment" className="block text-gray-700 text-sm font-bold mb-2">
+              Department
+            </label>
+            <select
+              id="contributor.staffDepartment"
+              name="contributor.staffDepartment"
+              value={formData.contributor.staffDepartment}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="" disabled>Select department</option>
+              {departments.map((department, index) => (
+                <option key={index} value={department}>{department}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label htmlFor="contributor.mobileNo" className="block text-gray-700 text-sm font-bold mb-2">
+              Mobile Number
+            </label>
+            <input
+              type="text"
+              id="contributor.mobileNo"
+              name="contributor.mobileNo"
+              value={formData.contributor.mobileNo}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., 9876543210"
+              maxLength={10}
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="contributor.email" className="block text-gray-700 text-sm font-bold mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              id="contributor.email"
+              name="contributor.email"
+              value={formData.contributor.email}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., john.doe@example.com"
+            />
+          </div>
+        </div>
+      );
+    }
+    else if (userType === 'Guard') {
+      return (
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <label htmlFor="contributor.guardName" className="block text-gray-700 text-sm font-bold mb-2">
+              Guard Name
+            </label>
+            <input
+              type="text"
+              id="contributor.guardName"
+              name="contributor.guardName"
+              value={formData.contributor.guardName}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., John Doe"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="contributor.email" className="block text-gray-700 text-sm font-bold mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              id="contributor.email"
+              name="contributor.email"
+              value={formData.contributor.email}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., john.doe@example.com"
+            />
+          </div>
+        </div>
+      );
+    }
+    else if (userType === 'Helper') {
+      return (
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <label htmlFor="contributor.helperName" className="block text-gray-700 text-sm font-bold mb-2">
+              Helper Name
+            </label>
+            <input
+              type="text"
+              id="contributor.helperName"
+              name="contributor.helperName"
+              value={formData.contributor.helperName}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., John Doe"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="contributor.email" className="block text-gray-700 text-sm font-bold mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              id="contributor.email"
+              name="contributor.email"
+              value={formData.contributor.email}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g., john.doe@example.com"
+            />
+          </div>
+        </div>
+      );
     }
   };
 
@@ -347,6 +689,37 @@ const AddItem = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Provide any additional details about the item (color, brand, condition, etc.)"
             ></textarea>
+          </div>
+          
+          <div className="mb-6">
+            <h3 className="text-xl font-bold text-blue-800 mb-4">Contributor Information</h3>
+            <p className="text-gray-600 mb-4">
+              Please enter details of the person who found and submitted this item.
+            </p>
+            
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2">
+                Contributor Type
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {['Student', 'Staff', 'Guard', 'Helper'].map((type) => (
+                  <div key={type} className="flex items-center">
+                    <input
+                      type="radio"
+                      id={`contributorType_${type}`}
+                      name="contributor.userType"
+                      value={type}
+                      checked={formData.contributor.userType === type}
+                      onChange={handleChange}
+                      className="mr-2"
+                    />
+                    <label htmlFor={`contributorType_${type}`}>{type}</label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {renderContributorFields()}
           </div>
           
           <div className="flex justify-end gap-4">

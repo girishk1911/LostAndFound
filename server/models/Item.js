@@ -52,6 +52,77 @@ const ItemSchema = new mongoose.Schema({
       'Other'
     ]
   },
+  contributor: {
+    userType: {
+      type: String,
+      enum: ['Student', 'Staff', 'Guard', 'Helper'],
+      default: 'Student'
+    },
+    studentName: {
+      type: String,
+      required: false,
+      trim: true
+    },
+    rollNumber: {
+      type: String,
+      required: false,
+      trim: true
+    },
+    department: {
+      type: String,
+      required: false,
+      trim: true
+    },
+    studyYear: {
+      type: String,
+      required: false,
+      trim: true
+    },
+    // Fields for staff
+    staffName: {
+      type: String,
+      required: false,
+      trim: true
+    },
+    staffDepartment: {
+      type: String,
+      required: false,
+      trim: true
+    },
+    mobileNo: {
+      type: String,
+      required: false,
+      trim: true
+    },
+    email: {
+      type: String,
+      required: false,
+      trim: true
+    },
+    // Fields for guard and helper
+    guardName: {
+      type: String,
+      required: false,
+      trim: true
+    },
+    helperName: {
+      type: String,
+      required: false,
+      trim: true
+    },
+    submittedDate: {
+      type: Date,
+      default: Date.now
+    },
+    displayUntil: {
+      type: Date,
+      default: function() {
+        const date = new Date();
+        date.setDate(date.getDate() + 7); // Display for one week
+        return date;
+      }
+    }
+  },
   foundDate: {
     type: Date,
     required: [true, 'Please add a found date'],
@@ -171,38 +242,75 @@ const ItemSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please upload an image']
   },
-  claimedBy: {
+  claims: [{
+    userType: {
+      type: String,
+      enum: ['Student', 'Staff', 'Guard', 'Helper'],
+      default: 'Student'
+    },
     studentName: String,
     rollNumber: String,
     studyYear: String,
     contactNumber: String,
+    email: String,
+    // Fields for staff
+    staffName: String,
+    staffDepartment: String,
+    mobileNo: String,
+    // Fields for guard and helper
+    guardName: String,
+    helperName: String,
     claimedDate: {
       type: Date,
-      default: null
+      default: Date.now
     }
+  }],
+  verificationDateTime: {
+    type: Date,
+    default: function() {
+      const date = new Date(this.createdAt || Date.now());
+      date.setDate(date.getDate() + 1);
+      return date;
+    }
+  },
+  deliveredTo: {
+    userType: {
+      type: String,
+      enum: ['Student', 'Staff', 'Guard', 'Helper'],
+      default: 'Student'
+    },
+    studentName: String,
+    rollNumber: String,
+    studyYear: String,
+    contactNumber: String,
+    email: String,
+    staffName: String,
+    staffDepartment: String,
+    mobileNo: String,
+    guardName: String,
+    helperName: String,
+    deliveryDate: Date,
+    verifiedBy: String
   },
   addedBy: {
     type: String,
-    default: 'pict_guard' // Default to the guard username since we're using a simple auth system
+    default: 'pict_guard'
   },
   createdAt: {
     type: Date,
     default: Date.now
   }
 }, {
-  toJSON: { getters: true }, // Enable getters when converting to JSON
-  toObject: { getters: true } // Enable getters when converting to object
+  toJSON: { getters: true },
+  toObject: { getters: true }
 });
 
-// Prevent duplicate items (modified to be less strict)
 ItemSchema.index({ name: 1, foundDate: 1 }, { unique: false });
 
-// Static method to get items by status
 ItemSchema.statics.getItemsByStatus = async function(status) {
   return await this.find({ status });
 };
 
-// Static method to search items
 ItemSchema.statics.searchItems = async function(searchTerm) {
   return await this.find({
     $or: [

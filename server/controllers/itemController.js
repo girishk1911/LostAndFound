@@ -116,8 +116,99 @@ const createItem = asyncHandler(async (req, res) => {
     console.log('Received item data:', req.body);
     console.log('Received foundDate:', req.body.foundDate);
     
+    // Get contributor type
+    const contributorType = req.body['contributor[userType]'] || 'Student';
+    
+    // Validate contributor data based on type
+    if (contributorType === 'Student' && req.body['contributor[studentName]']) {
+      // Validate roll number format for student (exactly 5 digits)
+      if (req.body['contributor[rollNumber]'] && 
+          !/^\d{5}$/.test(req.body['contributor[rollNumber]'])) {
+        return res.status(400).json({
+          success: false,
+          message: 'Roll number must be exactly 5 digits'
+        });
+      }
+    } else if (contributorType === 'Staff' && req.body['contributor[staffName]']) {
+      // Validate mobile number format for staff (exactly 10 digits)
+      if (req.body['contributor[mobileNo]'] && 
+          !/^\d{10}$/.test(req.body['contributor[mobileNo]'])) {
+        return res.status(400).json({
+          success: false,
+          message: 'Mobile number must be exactly 10 digits'
+        });
+      }
+    }
+    
     // Parse the foundDate explicitly if it exists
     const itemData = { ...req.body };
+    
+    // Structure contributor data based on type
+    if (contributorType === 'Student' && itemData['contributor[studentName]']) {
+      itemData.contributor = {
+        userType: 'Student',
+        studentName: itemData['contributor[studentName]'],
+        rollNumber: itemData['contributor[rollNumber]'],
+        department: itemData['contributor[department]'],
+        studyYear: itemData['contributor[studyYear]'],
+        submittedDate: new Date(),
+        displayUntil: new Date(new Date().setDate(new Date().getDate() + 7)) // 7 days from now
+      };
+      
+      // Remove the flat contributor fields
+      delete itemData['contributor[userType]'];
+      delete itemData['contributor[studentName]'];
+      delete itemData['contributor[rollNumber]'];
+      delete itemData['contributor[department]'];
+      delete itemData['contributor[studyYear]'];
+    } 
+    else if (contributorType === 'Staff' && itemData['contributor[staffName]']) {
+      itemData.contributor = {
+        userType: 'Staff',
+        staffName: itemData['contributor[staffName]'],
+        staffDepartment: itemData['contributor[staffDepartment]'],
+        mobileNo: itemData['contributor[mobileNo]'],
+        email: itemData['contributor[email]'],
+        submittedDate: new Date(),
+        displayUntil: new Date(new Date().setDate(new Date().getDate() + 7)) // 7 days from now
+      };
+      
+      // Remove the flat contributor fields
+      delete itemData['contributor[userType]'];
+      delete itemData['contributor[staffName]'];
+      delete itemData['contributor[staffDepartment]'];
+      delete itemData['contributor[mobileNo]'];
+      delete itemData['contributor[email]'];
+    }
+    else if (contributorType === 'Guard' && itemData['contributor[guardName]']) {
+      itemData.contributor = {
+        userType: 'Guard',
+        guardName: itemData['contributor[guardName]'],
+        email: itemData['contributor[email]'],
+        submittedDate: new Date(),
+        displayUntil: new Date(new Date().setDate(new Date().getDate() + 7)) // 7 days from now
+      };
+      
+      // Remove the flat contributor fields
+      delete itemData['contributor[userType]'];
+      delete itemData['contributor[guardName]'];
+      delete itemData['contributor[email]'];
+    }
+    else if (contributorType === 'Helper' && itemData['contributor[helperName]']) {
+      itemData.contributor = {
+        userType: 'Helper',
+        helperName: itemData['contributor[helperName]'],
+        email: itemData['contributor[email]'],
+        submittedDate: new Date(),
+        displayUntil: new Date(new Date().setDate(new Date().getDate() + 7)) // 7 days from now
+      };
+      
+      // Remove the flat contributor fields
+      delete itemData['contributor[userType]'];
+      delete itemData['contributor[helperName]'];
+      delete itemData['contributor[email]'];
+    }
+    
     if (itemData.foundDate) {
       console.log('Original foundDate from client:', itemData.foundDate);
       
@@ -695,6 +786,29 @@ const getItemStatistics = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Get contributors for homepage showcase
+// @route   GET /api/items/contributors
+// @access  Public
+const getContributors = asyncHandler(async (req, res) => {
+  const now = new Date();
+  
+  // Find items with contributor information where displayUntil date is greater than or equal to now
+  // Check for valid contributor name based on type (student, staff, guard, or helper)
+  const items = await Item.find({
+    $or: [
+      { 'contributor.studentName': { $exists: true, $ne: '' } },
+      { 'contributor.staffName': { $exists: true, $ne: '' } },
+      { 'contributor.guardName': { $exists: true, $ne: '' } },
+      { 'contributor.helperName': { $exists: true, $ne: '' } }
+    ],
+    'contributor.displayUntil': { $gte: now }
+  })
+  .sort('-contributor.submittedDate')
+  .limit(10);
+  
+  res.status(200).json(items);
+});
+
 module.exports = {
   getItems,
   getRecentItems,
@@ -705,5 +819,6 @@ module.exports = {
   updateClaimedItem,
   markAsDelivered,
   deleteItem,
-  getItemStatistics
+  getItemStatistics,
+  getContributors
 };

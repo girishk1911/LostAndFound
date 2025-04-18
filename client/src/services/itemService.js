@@ -226,6 +226,32 @@ const claimItem = async (id, claimData) => {
   }
 };
 
+// New function to deliver an item to a specific claimant
+const deliverItem = async (id, claimIndex, verifiedBy = 'guard') => {
+  try {
+    const url = `${API_URL}/${id}/deliver`;
+    console.log("Delivering item with ID:", id);
+    console.log("Delivering to claim at index:", claimIndex);
+    
+    const response = await axios.put(url, { claimIndex, verifiedBy }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log("Server response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error delivering item:", error);
+    console.error("Response data:", error.response?.data);
+    // Provide more detailed error message
+    const errorMessage = error.response?.data?.message || 
+                        error.message || 
+                        'Failed to deliver item. Please try again.';
+    throw { message: errorMessage };
+  }
+};
+
 // Delete item
 const deleteItem = async (id) => {
   try {
@@ -305,7 +331,8 @@ export {
   updateItemStatus,
   claimItem,
   deleteItem,
-  getItemStatistics
+  getItemStatistics,
+  deliverItem
 };
 
 // Default export for backward compatibility
@@ -322,7 +349,8 @@ const itemService = {
   updateItemStatus,
   claimItem,
   deleteItem,
-  getItemStatistics
+  getItemStatistics,
+  deliverItem
 };
 
 export default itemService;

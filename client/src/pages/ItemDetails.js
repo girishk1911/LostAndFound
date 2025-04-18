@@ -3,11 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { FaCalendarAlt, FaMapMarkerAlt, FaTag, FaInfoCircle, FaUser, FaTimes } from 'react-icons/fa';
+import { FaCalendarAlt, FaMapMarkerAlt, FaTag, FaInfoCircle, FaUser, FaTimes, FaClock, FaUsers, FaSearch } from 'react-icons/fa';
 import ClaimForm from '../components/ClaimForm';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { AuthContext } from '../context/AuthContext';
-import { formatDate } from '../utils/dateUtils';
+import { formatDate, formatDateTime } from '../utils/dateUtils';
+import ClaimDetailsModal from '../components/ClaimDetailsModal';
 
 const ItemDetails = () => {
   const { id } = useParams();
@@ -17,45 +18,27 @@ const ItemDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showClaimForm, setShowClaimForm] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [showClaimDetailsModal, setShowClaimDetailsModal] = useState(false);
 
   useEffect(() => {
-    const fetchItemDetails = async () => {
+    const fetchItem = async () => {
       try {
         setLoading(true);
-        const apiUrl = `http://localhost:5000/api/items/${id}`;
-        const response = await axios.get(apiUrl);
-        
-        let itemData;
-        if (response.data && response.data.data) {
-          itemData = response.data.data;
-        } else if (response.data) {
-          itemData = response.data;
-        } else {
-          throw new Error('Invalid response format');
-        }
-        
-        console.log('Item data received:', itemData);
-        console.log('foundDate:', itemData.foundDate);
-        console.log('formatted foundDate:', formatDate(itemData.foundDate));
-        
-        setItem(itemData);
+        const response = await axios.get(`http://localhost:5000/api/items/${id}`);
+        setItem(response.data.data);
         setLoading(false);
       } catch (err) {
-        console.error('Error fetching item details:', err);
-        setError('Failed to load item details. Please try again.');
+        console.error('Error fetching item:', err);
+        setError('Failed to fetch item details');
         setLoading(false);
       }
     };
 
-    if (id) {
-      fetchItemDetails();
-    } else {
-      setError('Item ID is missing');
-      setLoading(false);
-    }
+    fetchItem();
   }, [id]);
 
-  const handleClaim = () => {
+  const handleClaimClick = () => {
     setShowClaimForm(true);
   };
 
@@ -64,194 +47,233 @@ const ItemDetails = () => {
   };
 
   const handleClaimSubmitted = () => {
-    // Update item status locally
-    setItem(prev => ({ ...prev, status: 'claimed' }));
-    // Close the form
-    setShowClaimForm(false);
-    // Show success message
-    toast.success('Claim submitted successfully! Please visit the security office with your ID to collect the item.');
+    // Reload the item to get updated status
+    const fetchUpdatedItem = async () => {
+      try {
+        const response = await axios.get(`http://localhost:5000/api/items/${id}`);
+        setItem(response.data.data);
+        toast.success('Claim submitted successfully!');
+      } catch (err) {
+        console.error('Error fetching updated item:', err);
+      }
+    };
+
+    fetchUpdatedItem();
+    handleCloseForm();
   };
 
   const handleMarkAsDelivered = async () => {
     try {
-      // Create update data preserving the claimed information
-      const updateData = {
-        claimedBy: {
-          ...item.claimedBy,
-          claimedDate: item.claimedBy?.claimedDate || new Date().toISOString()
-        }
-      };
-      
-      await axios.put(
-        `http://localhost:5000/api/items/${id}/delivered`,
-        updateData,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
-      
-      setItem((prevItem) => ({
-        ...prevItem,
-        status: 'delivered',
-      }));
-      
-      toast.success('Item marked as delivered successfully');
+      await axios.put(`http://localhost:5000/api/items/${id}/status`, {
+        status: 'delivered'
+      });
+      toast.success('Item marked as delivered');
+      // Refresh the item data
+      const response = await axios.get(`http://localhost:5000/api/items/${id}`);
+      setItem(response.data.data);
     } catch (err) {
       console.error('Error marking item as delivered:', err);
-      toast.error('Failed to mark item as delivered');
+      toast.error('Failed to update item status');
     }
   };
 
-  // Function to get the full image URL
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return '/assets/images/placeholder.png';
-    
-    // If it's a full URL already, return as is
-    if (imagePath.startsWith('http')) return imagePath;
-    
-    // Otherwise, prepend the server URL
-    return `http://localhost:5000${imagePath}`;
+  // Get number of claims for this item
+  const getClaimsCount = () => {
+    if (!item || !item.claims) return 0;
+    return item.claims.length;
   };
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
+  // Check if current user has already claimed this item
+  const hasUserClaimedItem = () => {
+    return false; // We don't track this currently, so always allow claiming
+  };
 
-  if (error) {
-    return (
-      <div className="container mx-auto px-4 py-16">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
-          <p className="text-gray-700">{error}</p>
-          <button
-            onClick={() => navigate('/lost-items')}
-            className="mt-6 bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition duration-300"
-          >
-            Back to Items
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!item) {
-    return <LoadingSpinner />;
-  }
+  if (loading) return <LoadingSpinner />;
+  if (error) return <div className="text-red-500 text-center">{error}</div>;
+  if (!item) return <div className="text-center">Item not found</div>;
 
   return (
     <div className="container mx-auto px-4 py-8">
       <ToastContainer position="top-right" autoClose={3000} />
       
-      <div className="mb-6">
-        <button
-          onClick={() => navigate('/lost-items')}
-          className="text-blue-600 hover:text-blue-800 flex items-center"
-        >
-          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-          </svg>
-          Back to Lost Items
-        </button>
-      </div>
-      
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="md:flex">
           <div className="md:w-1/2">
-            <div className="h-80 bg-gray-200 flex items-center justify-center overflow-hidden">
-              {item.image ? (
-                <img 
-                  src={getImageUrl(item.image)} 
-                  alt={item.name} 
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = '/assets/images/placeholder.png';
-                  }}
-                />
-              ) : (
-                <div className="text-gray-400">No image available</div>
-              )}
+            <div 
+              className="relative cursor-pointer" 
+              onClick={() => setShowImageModal(true)}
+            >
+              <img 
+                src={`http://localhost:5000${item.image}`}
+                alt={item.name}
+                className="w-full h-64 object-cover md:h-80"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = '/assets/images/placeholder.png';
+                }}
+              />
+              <div className="absolute bottom-4 right-4 bg-black bg-opacity-50 rounded-full p-2 text-white">
+                <FaSearch className="h-5 w-5" />
+              </div>
             </div>
           </div>
           
           <div className="md:w-1/2 p-6">
-            <div className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mb-4 ${
-              item.status === 'available' 
-                ? 'bg-green-100 text-green-800' 
-                : item.status === 'claimed' 
-                ? 'bg-yellow-100 text-yellow-800' 
-                : 'bg-red-100 text-red-800'
-            }`}>
-              {item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Unknown'}
+            <div className="flex justify-between items-start">
+              <h1 className="text-3xl font-bold text-gray-800 mb-4">{item.name}</h1>
+              
+              <div className="flex items-center">
+                <span className={`
+                  px-3 py-1 rounded-full text-sm font-semibold
+                  ${item.status === 'available' ? 'bg-green-100 text-green-800' : 
+                    item.status === 'claimed' ? 'bg-blue-100 text-blue-800' : 
+                    'bg-purple-100 text-purple-800'}
+                `}>
+                  {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                  
+                  {/* Show claims count for claimed items */}
+                  {item.status === 'claimed' && getClaimsCount() > 0 && (
+                    <span className="ml-1">
+                      ({getClaimsCount()})
+                    </span>
+                  )}
+                </span>
+              </div>
             </div>
             
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">{item.name || 'Unnamed Item'}</h1>
-            
             <div className="mb-6">
-              <div className="flex items-center text-gray-600 mb-2">
-                <FaTag className="mr-2" />
-                <span>Category: </span>
-                <span className="font-medium ml-1">{item.category || 'Uncategorized'}</span>
+              <div className="flex items-center mb-2">
+                <FaTag className="text-blue-600 mr-2" />
+                <span className="text-gray-700 font-medium">Category:</span>
+                <span className="ml-2">{item.category}</span>
               </div>
               
-              <div className="flex items-center text-gray-600 mb-2">
-                <FaCalendarAlt className="mr-2" />
-                <span>Found on: </span>
-                <span className="font-medium ml-1">{formatDate(item.foundDate)}</span>
+              <div className="flex items-center mb-2">
+                <FaCalendarAlt className="text-blue-600 mr-2" />
+                <span className="text-gray-700 font-medium">Found Date:</span>
+                <span className="ml-2">{formatDate(item.foundDate)}</span>
               </div>
               
-              <div className="flex items-center text-gray-600 mb-2">
-                <FaMapMarkerAlt className="mr-2" />
-                <span>Location: </span>
-                <span className="font-medium ml-1">{item.location || 'Unknown'}</span>
+              <div className="flex items-center mb-2">
+                <FaMapMarkerAlt className="text-blue-600 mr-2" />
+                <span className="text-gray-700 font-medium">Location:</span>
+                <span className="ml-2">{item.location}</span>
               </div>
               
-              {item.claimedBy && (
+              {item.status === 'claimed' && (
+                <div className="flex items-center mb-2">
+                  <FaUsers className="text-blue-600 mr-2" />
+                  <span className="text-gray-700 font-medium">Claims:</span>
+                  <span className="ml-2">{getClaimsCount()}</span>
+                </div>
+              )}
+              
+              {item.status === 'claimed' && !isGuard() && (
                 <>
-                  <div className="flex items-center text-gray-600 mb-2">
-                    <FaUser className="mr-2" />
-                    <span>Claimed by: </span>
-                    <span className="font-medium ml-1">
-                      {item.claimedBy.studentName || item.claimedBy.name || 'Unknown'} 
-                      {item.claimedBy.rollNumber ? `(${item.claimedBy.rollNumber})` : ''}
-                    </span>
+                  <div className="flex items-center mb-2">
+                    <FaClock className="text-blue-600 mr-2" />
+                    <span className="text-gray-700 font-medium">Verification Date & Time:</span>
+                    <span className="ml-2">{formatDateTime(item.verificationDateTime)}</span>
                   </div>
-                  {item.claimedBy.claimedDate && (
-                    <div className="flex items-center text-gray-600 mb-2">
-                      <FaCalendarAlt className="mr-2" />
-                      <span>Claimed on: </span>
-                      <span className="font-medium ml-1">{formatDate(item.claimedBy.claimedDate)}</span>
+                  
+                  <div className="flex items-start mb-4">
+                    <FaInfoCircle className="text-blue-600 mr-2 mt-1" />
+                    <div>
+                      <span className="text-gray-700 font-medium">Verification Info:</span>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Please bring your college ID card for verification with the security guard.
+                      </p>
                     </div>
-                  )}
+                  </div>
                 </>
+              )}
+              
+              {item.status === 'delivered' && item.deliveredTo && (
+                <div className="flex items-start mb-2">
+                  <FaUser className="text-blue-600 mr-2 mt-1" />
+                  <div>
+                    <span className="text-gray-700 font-medium">Delivered To:</span>
+                    <div className="ml-2 mt-1">
+                      {item.deliveredTo.userType === 'Student' && (
+                        <>
+                          <p className="font-medium">{item.deliveredTo.studentName}</p>
+                          <div className="grid grid-cols-2 gap-x-4 text-sm text-gray-600 mt-1">
+                            <p>Roll: {item.deliveredTo.rollNumber}</p>
+                            <p>Year: {item.deliveredTo.studyYear}</p>
+                          </div>
+                        </>
+                      )}
+                      
+                      {item.deliveredTo.userType === 'Staff' && (
+                        <>
+                          <p className="font-medium">{item.deliveredTo.staffName}</p>
+                          <div className="grid grid-cols-2 gap-x-4 text-sm text-gray-600 mt-1">
+                            <p>Department: {item.deliveredTo.staffDepartment}</p>
+                            <p>Mobile: {item.deliveredTo.mobileNo}</p>
+                          </div>
+                        </>
+                      )}
+                      
+                      {item.deliveredTo.userType === 'Guard' && (
+                        <>
+                          <p className="font-medium">{item.deliveredTo.guardName}</p>
+                        </>
+                      )}
+                      
+                      {item.deliveredTo.userType === 'Helper' && (
+                        <>
+                          <p className="font-medium">{item.deliveredTo.helperName}</p>
+                        </>
+                      )}
+                      
+                      <p className="text-sm text-gray-600 mt-1">
+                        <span className="font-medium">Type:</span> {item.deliveredTo.userType}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Email: {item.deliveredTo.email || 'Not provided'}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Contact: {item.deliveredTo.contactNumber || item.deliveredTo.mobileNo || 'Not provided'}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-2 border-t pt-2">
+                        Delivered on: {formatDate(item.deliveredTo.deliveryDate)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
             
             <div className="mb-6">
-              <h3 className="flex items-center text-gray-700 font-semibold mb-2">
-                <FaInfoCircle className="mr-2" />
-                Description
-              </h3>
-              <p className="text-gray-600">{item.description || 'No description provided.'}</p>
+              <h2 className="text-xl font-semibold mb-2">Description</h2>
+              <p className="text-gray-700">{item.description || 'No description provided.'}</p>
             </div>
             
-            {item.status === 'available' && !isGuard() && (
+            {/* Always show claim button unless item is delivered */}
+            {item.status !== 'delivered' && !isGuard() && (
               <button
-                onClick={handleClaim}
+                onClick={handleClaimClick}
                 className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition duration-300"
               >
-                Claim This Item
+                {item.status === 'claimed' ? 'Submit Your Claim' : 'Claim This Item'}
               </button>
+            )}
+            
+            {item.status === 'claimed' && !isGuard() && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+                <p className="text-center text-yellow-800">
+                  This item has been claimed by {getClaimsCount()} {getClaimsCount() === 1 ? 'person' : 'people'}.
+                  <br />All claimants must visit the security office on {formatDateTime(item.verificationDateTime)} for verification.
+                </p>
+              </div>
             )}
             
             {item.status === 'claimed' && isGuard() && (
               <button
-                onClick={handleMarkAsDelivered}
+                onClick={() => setShowClaimDetailsModal(true)}
                 className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition duration-300"
               >
-                Mark as Delivered
+                Manage Claims
               </button>
             )}
           </div>
@@ -276,6 +298,54 @@ const ItemDetails = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Image Modal */}
+      {showImageModal && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div className="relative max-w-4xl w-full">
+            <button 
+              onClick={() => setShowImageModal(false)}
+              className="absolute top-4 right-4 text-white hover:text-gray-300"
+            >
+              <FaTimes className="h-6 w-6" />
+            </button>
+            <img 
+              src={`http://localhost:5000${item.image}`}
+              alt={item.name}
+              className="w-full h-auto max-h-[90vh] object-contain"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = '/assets/images/placeholder.png';
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Claim Details Modal */}
+      {showClaimDetailsModal && item && (
+        <ClaimDetailsModal
+          isOpen={showClaimDetailsModal}
+          onClose={() => setShowClaimDetailsModal(false)}
+          item={item}
+          onSuccess={() => {
+            setShowClaimDetailsModal(false);
+            // Refresh item data
+            const fetchItem = async () => {
+              try {
+                const response = await axios.get(`http://localhost:5000/api/items/${id}`);
+                setItem(response.data.data);
+              } catch (err) {
+                console.error('Error fetching item:', err);
+              }
+            };
+            fetchItem();
+          }}
+        />
       )}
     </div>
   );

@@ -210,4 +210,38 @@ export const safeParseDateString = (dateString) => {
     console.error('Error safely parsing date:', e, dateString);
     return null;
   }
+};
+
+// Add a new function to format date and time together
+/**
+ * Format a date with time in DD-MM-YYYY HH:MM format
+ * @param {string|Date} dateTimeString - Date and time to format
+ * @returns {string} Formatted date and time string
+ */
+export const formatDateTime = (dateTimeString) => {
+  if (!dateTimeString) return 'N/A';
+  
+  try {
+    const date = new Date(dateTimeString);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date received:', dateTimeString);
+      return 'Invalid date';
+    }
+    
+    // Format the date part (DD-MM-YYYY)
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    
+    // Format the time part (HH:MM)
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${day}-${month}-${year} ${hours}:${minutes}`;
+  } catch (e) {
+    console.error('Error formatting date and time:', e);
+    return 'Invalid date';
+  }
 }; 

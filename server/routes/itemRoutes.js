@@ -10,7 +10,8 @@ const {
   updateClaimedItem,
   markAsDelivered,
   deleteItem,
-  getItemStatistics
+  getItemStatistics,
+  getContributors
 } = require('../controllers/itemController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 const upload = require('../utils/uploadMiddleware');
@@ -27,6 +28,7 @@ router.get('/', getItems);
 router.get('/recent', getRecentItems);
 router.get('/search', searchItems);
 router.get('/statistics/data', getItemStatistics);
+router.get('/contributors', getContributors);
 router.get('/:id', getItem);
 
 // Middleware to handle foundDate before upload
@@ -71,85 +73,214 @@ router.put('/:id/claim', async (req, res) => {
       });
     }
     
-    // Only allow claiming available items
-    if (item.status !== 'available') {
+    // Only allow claiming if item isn't already delivered
+    if (item.status === 'delivered') {
       return res.status(400).json({
         success: false,
-        message: 'This item is not available for claiming'
+        message: 'This item has already been delivered and cannot be claimed'
       });
     }
     
-    // Validate required fields
-    if (!req.body.studentName || !req.body.studentId || !req.body.studentYear || !req.body.contactNumber) {
+    // Get user type from request
+    const userType = req.body.userType || 'Student';
+    
+    // Validate fields based on user type
+    let isValid = true;
+    let validationMessage = '';
+    
+    if (userType === 'Student') {
+      // Validate required student fields
+      if (!req.body.studentName || !req.body.studentId || !req.body.studentYear || !req.body.contactNumber || !req.body.email) {
+        isValid = false;
+        validationMessage = 'All student fields are required: studentName, studentId, studentYear, contactNumber, email';
+      } 
+      // Validate roll number (must be exactly 5 digits)
+      else if (!/^\d{5}$/.test(req.body.studentId)) {
+        isValid = false;
+        validationMessage = 'Roll number must be exactly 5 digits';
+      }
+    } 
+    else if (userType === 'Staff') {
+      // Validate required staff fields
+      if (!req.body.staffName || !req.body.staffDepartment || !req.body.mobileNo || !req.body.email) {
+        isValid = false;
+        validationMessage = 'All staff fields are required: staffName, staffDepartment, mobileNo, email';
+      }
+    } 
+    else if (userType === 'Guard' || userType === 'Helper') {
+      // Validate required guard/helper fields
+      const nameField = userType === 'Guard' ? 'guardName' : 'helperName';
+      if (!req.body[nameField] || !req.body.email) {
+        isValid = false;
+        validationMessage = `All ${userType.toLowerCase()} fields are required: ${nameField}, email`;
+      }
+    }
+    
+    // Validate contact number if provided (must be exactly 10 digits)
+    if (isValid && req.body.contactNumber && !/^\d{10}$/.test(req.body.contactNumber)) {
+      isValid = false;
+      validationMessage = 'Contact number must be exactly 10 digits';
+    }
+    
+    // Validate mobile number for staff if provided (must be exactly 10 digits)
+    if (isValid && userType === 'Staff' && !/^\d{10}$/.test(req.body.mobileNo)) {
+      isValid = false;
+      validationMessage = 'Mobile number must be exactly 10 digits';
+    }
+    
+    // Validate email format
+    if (isValid && req.body.email && !/^\S+@\S+\.\S+$/.test(req.body.email)) {
+      isValid = false;
+      validationMessage = 'Please provide a valid email address';
+    }
+    
+    if (!isValid) {
       return res.status(400).json({
         success: false,
-        message: 'All fields are required: studentName, studentId, studentYear, contactNumber'
+        message: validationMessage
       });
     }
     
-    // Validate roll number (must be exactly 5 digits)
-    if (!/^\d{5}$/.test(req.body.studentId)) {
+    // Check if this user has already claimed this item
+    let existingClaim;
+    if (userType === 'Student') {
+      existingClaim = item.claims && item.claims.find(
+        claim => claim.userType === 'Student' && claim.rollNumber === req.body.studentId
+      );
+    } else if (userType === 'Staff') {
+      existingClaim = item.claims && item.claims.find(
+        claim => claim.userType === 'Staff' && claim.staffName === req.body.staffName && claim.email === req.body.email
+      );
+    } else if (userType === 'Guard') {
+      existingClaim = item.claims && item.claims.find(
+        claim => claim.userType === 'Guard' && claim.guardName === req.body.guardName && claim.email === req.body.email
+      );
+    } else if (userType === 'Helper') {
+      existingClaim = item.claims && item.claims.find(
+        claim => claim.userType === 'Helper' && claim.helperName === req.body.helperName && claim.email === req.body.email
+      );
+    }
+    
+    if (existingClaim) {
       return res.status(400).json({
         success: false,
-        message: 'Roll number must be exactly 5 digits'
+        message: 'You have already claimed this item'
       });
     }
     
-    // Validate contact number (must be exactly 10 digits)
-    if (!/^\d{10}$/.test(req.body.contactNumber)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Contact number must be exactly 10 digits'
-      });
-    }
-    
-    // Prepare the claimedBy data, ensuring all keys are correctly mapped
-    const claimedBy = {
-      studentName: req.body.studentName,
-      rollNumber: req.body.studentId,  // Map studentId to rollNumber as per model
-      studyYear: req.body.studentYear,
-      contactNumber: req.body.contactNumber,
-      claimedDate: new Date() // Always use current date for claim
+    // Create a new claim object with all potential fields
+    const newClaim = {
+      userType,
+      claimedDate: new Date(),
+      // Student fields
+      studentName: req.body.studentName || '',
+      rollNumber: req.body.studentId || '',
+      studyYear: req.body.studentYear || '',
+      // Staff fields
+      staffName: req.body.staffName || '',
+      staffDepartment: req.body.staffDepartment || '',
+      mobileNo: req.body.mobileNo || '',
+      // Guard/Helper fields
+      guardName: req.body.guardName || '',
+      helperName: req.body.helperName || '',
+      // Common fields
+      contactNumber: req.body.contactNumber || '',
+      email: req.body.email || ''
     };
     
-    // Log the prepared claimedBy data
-    console.log('Prepared claimedBy data:', JSON.stringify(claimedBy, null, 2));
-    console.log('Claim date set to:', claimedBy.claimedDate);
-    
-    // Update the item directly using findByIdAndUpdate to ensure atomic update
-    const updatedItem = await Item.findByIdAndUpdate(
-      itemId,
-      { 
-        status: 'claimed',
-        claimedBy: claimedBy
-      },
-      { 
-        new: true, 
-        runValidators: true 
-      }
-    );
-    
-    if (!updatedItem) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to update item'
-      });
+    // Initialize claims array if it doesn't exist
+    if (!item.claims) {
+      item.claims = [];
     }
     
-    // Log the updated item to verify
-    console.log('Updated item:', JSON.stringify(updatedItem, null, 2));
+    // Add to claims array and update item status
+    item.claims.push(newClaim);
+    
+    // Set status to claimed if not already
+    if (item.status !== 'claimed') {
+      item.status = 'claimed';
+    }
+    
+    // Calculate verification date if not set (24 hours after item creation)
+    if (!item.verificationDateTime) {
+      const verificationDate = new Date(item.createdAt);
+      verificationDate.setDate(verificationDate.getDate() + 1);
+      item.verificationDateTime = verificationDate;
+    }
+    
+    await item.save();
+    
+    // Format verification time for the response
+    const verificationDate = new Date(item.verificationDateTime);
+    const formattedVerificationDate = verificationDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    const formattedVerificationTime = verificationDate.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    
+    // Get the name of the claimant based on user type
+    let claimantName = '';
+    if (userType === 'Student') {
+      claimantName = req.body.studentName;
+    } else if (userType === 'Staff') {
+      claimantName = req.body.staffName;
+    } else if (userType === 'Guard') {
+      claimantName = req.body.guardName;
+    } else if (userType === 'Helper') {
+      claimantName = req.body.helperName;
+    }
+    
+    // Send email with verification details
+    try {
+      // Import email services
+      const sendEmail = require('../utils/emailService');
+      const { getClaimVerificationEmail } = require('../utils/emailTemplates');
+      
+      // Prepare email data
+      const emailData = {
+        claimantName: claimantName,
+        userType: userType,
+        itemName: item.name,
+        verificationDate: formattedVerificationDate,
+        verificationTime: formattedVerificationTime,
+        foundLocation: item.location
+      };
+      
+      // Generate email content
+      const emailHtml = getClaimVerificationEmail(emailData);
+      
+      // Send the email
+      await sendEmail({
+        email: req.body.email,
+        subject: 'PICT Lost & Found: Item Claim Verification',
+        message: emailHtml
+      });
+      
+      console.log(`Verification email sent to ${req.body.email}`);
+    } catch (emailError) {
+      console.error('Error sending verification email:', emailError);
+      // Continue process even if email fails - don't block the API response
+    }
     
     res.status(200).json({
       success: true,
-      message: 'Item claimed successfully',
-      data: updatedItem
+      data: item,
+      claim: {
+        verificationDate: formattedVerificationDate,
+        verificationTime: formattedVerificationTime
+      }
     });
   } catch (error) {
     console.error('Error claiming item:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error while claiming item',
-      error: error.message
+      message: 'Server error'
     });
   }
 });
@@ -202,6 +333,81 @@ router.patch('/:id/status', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while updating item status'
+    });
+  }
+});
+
+// New route for guards to deliver an item to a specific claimant
+router.put('/:id/deliver', async (req, res) => {
+  try {
+    const itemId = req.params.id;
+    const { claimIndex, verifiedBy } = req.body;
+    
+    if (claimIndex === undefined || claimIndex === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Claim index is required'
+      });
+    }
+    
+    // Get the item
+    const Item = require('../models/Item');
+    const item = await Item.findById(itemId);
+    
+    if (!item) {
+      return res.status(404).json({
+        success: false,
+        message: 'Item not found'
+      });
+    }
+    
+    // Check if the claim index is valid
+    if (!item.claims || claimIndex < 0 || claimIndex >= item.claims.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'Claim not found'
+      });
+    }
+    
+    // Get the selected claim by index
+    const selectedClaim = item.claims[claimIndex];
+    
+    // Update the item as delivered
+    item.status = 'delivered';
+    
+    // Store the delivery information based on user type
+    item.deliveredTo = {
+      userType: selectedClaim.userType || 'Student',
+      // Student fields
+      studentName: selectedClaim.studentName || '',
+      rollNumber: selectedClaim.rollNumber || '',
+      studyYear: selectedClaim.studyYear || '',
+      // Staff fields
+      staffName: selectedClaim.staffName || '',
+      staffDepartment: selectedClaim.staffDepartment || '',
+      mobileNo: selectedClaim.mobileNo || '',
+      // Guard/Helper fields
+      guardName: selectedClaim.guardName || '',
+      helperName: selectedClaim.helperName || '',
+      // Common fields
+      contactNumber: selectedClaim.contactNumber || '',
+      email: selectedClaim.email || '',
+      deliveryDate: new Date(),
+      verifiedBy: verifiedBy || 'guard'
+    };
+    
+    await item.save();
+    
+    res.status(200).json({
+      success: true,
+      message: 'Item delivered successfully',
+      data: item
+    });
+  } catch (error) {
+    console.error('Error delivering item:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
     });
   }
 });

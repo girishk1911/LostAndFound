@@ -2,11 +2,43 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ItemCard from '../components/ItemCard';
 import { getRecentItems } from '../services/itemService';
+import axios from 'axios';
 
 const Home = () => {
   const [recentItems, setRecentItems] = useState([]);
+  const [contributors, setContributors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Colors for student logos
+  const bgColors = [
+    'bg-blue-500',
+    'bg-green-500',
+    'bg-purple-500',
+    'bg-pink-500',
+    'bg-indigo-500',
+    'bg-red-500',
+    'bg-yellow-500',
+    'bg-teal-500'
+  ];
+  
+  // Get a color based on student name (consistent for the same student)
+  const getColorForStudent = (name) => {
+    let sum = 0;
+    for (let i = 0; i < name.length; i++) {
+      sum += name.charCodeAt(i);
+    }
+    return bgColors[sum % bgColors.length];
+  };
+  
+  // Function to format date as DD-MM-YYYY
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
   
   useEffect(() => {
     const fetchRecentItems = async () => {
@@ -23,6 +55,64 @@ const Home = () => {
     
     fetchRecentItems();
   }, []);
+  
+  useEffect(() => {
+    const fetchContributors = async () => {
+      try {
+        // Fetch items with contributor information that are within the display period
+        const apiUrl = 'http://localhost:5000/api/items/contributors';
+        const response = await axios.get(apiUrl);
+        setContributors(response.data || []);
+      } catch (err) {
+        console.error('Error fetching contributors:', err);
+      }
+    };
+    
+    fetchContributors();
+    
+    // Refresh contributor list every minute
+    const intervalId = setInterval(fetchContributors, 60000);
+    
+    return () => clearInterval(intervalId);
+  }, []);
+  
+  // Get the name and department of a contributor based on their user type
+  const getContributorInfo = (contributor) => {
+    const { userType } = contributor;
+    
+    if (userType === 'Student') {
+      return {
+        name: contributor.studentName,
+        department: contributor.department,
+        additionalInfo: contributor.studyYear
+      };
+    } else if (userType === 'Staff') {
+      return {
+        name: contributor.staffName,
+        department: contributor.staffDepartment,
+        additionalInfo: 'Staff'
+      };
+    } else if (userType === 'Guard') {
+      return {
+        name: contributor.guardName,
+        department: 'Security',
+        additionalInfo: 'Guard'
+      };
+    } else if (userType === 'Helper') {
+      return {
+        name: contributor.helperName,
+        department: '',
+        additionalInfo: 'Helper'
+      };
+    }
+    
+    // Default fallback
+    return {
+      name: contributor.studentName || contributor.staffName || contributor.guardName || contributor.helperName || 'Unknown',
+      department: contributor.department || contributor.staffDepartment || '',
+      additionalInfo: ''
+    };
+  };
   
   return (
     <div>
@@ -171,23 +261,72 @@ const Home = () => {
         </div>
       </section>
       
-      {/* CTA Section */}
-      <section className="bg-primary-700 text-white">
-        <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:py-16 lg:px-8 lg:flex lg:items-center lg:justify-between">
-          <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
-            <span className="block">Missing something?</span>
-            <span className="block text-primary-200">Check our lost and found database.</span>
-          </h2>
-          <div className="mt-8 flex lg:mt-0 lg:flex-shrink-0">
-            <div className="inline-flex rounded-md shadow">
-              <Link
-                to="/lost-items"
-                className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-primary-600 bg-white hover:bg-primary-50"
-              >
-                Browse Items
-              </Link>
-            </div>
+      {/* Contributors Showcase Section */}
+      <section className="bg-primary-700 text-white overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:py-16 lg:px-8">
+          <div className="mb-8 text-center">
+            <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+              Star Contributors
+            </h2>
+            <p className="mt-2 text-primary-200">
+              Honoring people who found and returned lost items
+            </p>
           </div>
+          
+          {contributors.length > 0 ? (
+            <div className="relative contributor-carousel">
+              <div className="flex animate-scroll space-x-8 pb-4">
+                {contributors.map((item, index) => (
+                  <div 
+                    key={`${item._id}-${index}`} 
+                    className="flex-shrink-0 w-64 bg-white bg-opacity-10 rounded-lg p-4 backdrop-blur-sm border border-white border-opacity-20"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-12 h-12 ${getColorForStudent(getContributorInfo(item.contributor).name)} rounded-full flex items-center justify-center text-xl font-bold`}>
+                        {getContributorInfo(item.contributor).name.charAt(0)}
+                      </div>
+                      <div>
+                        <h3 className="font-bold">{getContributorInfo(item.contributor).name}</h3>
+                        <p className="text-primary-200 text-sm">{getContributorInfo(item.contributor).department}</p>
+                        <p className="text-primary-200 text-sm">{getContributorInfo(item.contributor).additionalInfo}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-white border-opacity-20">
+                      <p className="text-sm">Found: <span className="font-medium">{item.name}</span></p>
+                      <p className="text-xs text-primary-200">on {formatDate(item.foundDate)}</p>
+                    </div>
+                  </div>
+                ))}
+                
+                {/* Duplicate cards for continuous scroll */}
+                {contributors.length > 0 && contributors.map((item, index) => (
+                  <div 
+                    key={`${item._id}-duplicate-${index}`} 
+                    className="flex-shrink-0 w-64 bg-white bg-opacity-10 rounded-lg p-4 backdrop-blur-sm border border-white border-opacity-20"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-12 h-12 ${getColorForStudent(getContributorInfo(item.contributor).name)} rounded-full flex items-center justify-center text-xl font-bold`}>
+                        {getContributorInfo(item.contributor).name.charAt(0)}
+                      </div>
+                      <div>
+                        <h3 className="font-bold">{getContributorInfo(item.contributor).name}</h3>
+                        <p className="text-primary-200 text-sm">{getContributorInfo(item.contributor).department}</p>
+                        <p className="text-primary-200 text-sm">{getContributorInfo(item.contributor).additionalInfo}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-white border-opacity-20">
+                      <p className="text-sm">Found Item: <span className="font-medium">{item.name}</span></p>
+                      <p className="text-xs text-primary-200">on {formatDate(item.foundDate)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p>No contributors to showcase yet</p>
+            </div>
+          )}
         </div>
       </section>
     </div>

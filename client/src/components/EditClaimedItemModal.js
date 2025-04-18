@@ -12,13 +12,6 @@ const EditClaimedItemModal = ({ isOpen, onClose, item, onSuccess }) => {
     foundDate: ''
   });
   
-  const [studentFormData, setStudentFormData] = useState({
-    studentName: '',
-    studentId: '',
-    studentYear: '',
-    contactNumber: ''
-  });
-  
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,16 +29,6 @@ const EditClaimedItemModal = ({ isOpen, onClose, item, onSuccess }) => {
         foundDate: item.foundDate ? new Date(item.foundDate).toISOString().split('T')[0] : ''
       });
       
-      // Set student information if available
-      if (item.claimedBy) {
-        setStudentFormData({
-          studentName: item.claimedBy.studentName || '',
-          studentId: item.claimedBy.rollNumber || '',
-          studentYear: item.claimedBy.studyYear || '',
-          contactNumber: item.claimedBy.contactNumber || ''
-        });
-      }
-      
       // Set image preview if item has an image
       if (item.image) {
         const imageUrl = item.image.startsWith('http') 
@@ -61,53 +44,6 @@ const EditClaimedItemModal = ({ isOpen, onClose, item, onSuccess }) => {
   const handleItemChange = (e) => {
     const { name, value } = e.target;
     setItemFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleStudentChange = (e) => {
-    const { name, value } = e.target;
-    
-    // Clear any previous error for this field
-    setErrors({
-      ...errors,
-      [name]: ''
-    });
-    
-    // For studentId (roll number) - allow only digits and limit to 5 characters
-    if (name === 'studentId') {
-      // Only allow digits
-      if (!/^\d*$/.test(value)) {
-        setErrors({
-          ...errors,
-          studentId: 'Roll number must contain only digits'
-        });
-        return;
-      }
-      // Limit to max 5 digits
-      if (value.length > 5) {
-        return;
-      }
-    }
-    
-    // For contactNumber - allow only digits and limit to 10 characters
-    if (name === 'contactNumber') {
-      // Only allow digits
-      if (!/^\d*$/.test(value)) {
-        setErrors({
-          ...errors,
-          contactNumber: 'Contact number must contain only digits'
-        });
-        return;
-      }
-      // Limit to max 10 digits
-      if (value.length > 10) {
-        return;
-      }
-    }
-    
-    setStudentFormData(prev => ({
       ...prev,
       [name]: value
     }));
@@ -145,27 +81,6 @@ const EditClaimedItemModal = ({ isOpen, onClose, item, onSuccess }) => {
       newErrors.foundDate = 'Found date is required';
     }
     
-    // Validate student data
-    if (!studentFormData.studentName.trim()) {
-      newErrors.studentName = 'Student name is required';
-    }
-    
-    if (!studentFormData.studentId.trim()) {
-      newErrors.studentId = 'Student ID is required';
-    } else if (studentFormData.studentId.length !== 5) {
-      newErrors.studentId = 'Student ID must be 5 digits';
-    }
-    
-    if (!studentFormData.studentYear) {
-      newErrors.studentYear = 'Study year is required';
-    }
-    
-    if (!studentFormData.contactNumber.trim()) {
-      newErrors.contactNumber = 'Contact number is required';
-    } else if (studentFormData.contactNumber.length !== 10) {
-      newErrors.contactNumber = 'Contact number must be 10 digits';
-    }
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -194,19 +109,13 @@ const EditClaimedItemModal = ({ isOpen, onClose, item, onSuccess }) => {
         formData.append(key, itemFormData[key]);
       });
       
-      // Append student information as claimedBy
-      formData.append('claimedBy[studentName]', studentFormData.studentName);
-      formData.append('claimedBy[studentId]', studentFormData.studentId);
-      formData.append('claimedBy[studentYear]', studentFormData.studentYear);
-      formData.append('claimedBy[contactNumber]', studentFormData.contactNumber);
-      
       // Append image if selected
       if (image) {
         formData.append('image', image);
       }
 
       await updateClaimedItem(item._id, formData);
-      toast.success('Item updated successfully');
+      toast.success('Item details updated successfully');
       setLoading(false);
       onSuccess();
     } catch (err) {
@@ -252,224 +161,160 @@ const EditClaimedItemModal = ({ isOpen, onClose, item, onSuccess }) => {
   ];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Edit Claimed Item">
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose}
+      title="Edit Claimed Item Details"
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && (
-          <div className="p-3 bg-red-50 text-red-700 rounded-md">
-            {error}
-          </div>
-        )}
-        
-        <div className="bg-blue-50 p-4 rounded-md mb-4">
-          <h3 className="text-lg font-semibold text-blue-800 mb-2">Item Details</h3>
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-3">Item Details</h3>
           
-          <div className="space-y-4">
+          <div className="flex flex-col space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">Item Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Item Name*
+              </label>
               <input
                 type="text"
-                id="name"
                 name="name"
                 value={itemFormData.name}
                 onChange={handleItemChange}
+                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
                 required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
               {errors.name && (
-                <p className="text-red-500 text-xs italic mt-1">{errors.name}</p>
+                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
               )}
             </div>
             
             <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700">Category</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Category*
+              </label>
               <select
-                id="category"
                 name="category"
                 value={itemFormData.category}
                 onChange={handleItemChange}
+                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
                 required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               >
                 <option value="">Select Category</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                {categories.map(category => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
                 ))}
               </select>
               {errors.category && (
-                <p className="text-red-500 text-xs italic mt-1">{errors.category}</p>
+                <p className="mt-1 text-sm text-red-600">{errors.category}</p>
               )}
             </div>
             
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Location*
+              </label>
+              <select
+                name="location"
+                value={itemFormData.location}
+                onChange={handleItemChange}
+                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                required
+              >
+                <option value="">Select Location</option>
+                {locations.map(location => (
+                  <option key={location} value={location}>
+                    {location}
+                  </option>
+                ))}
+              </select>
+              {errors.location && (
+                <p className="mt-1 text-sm text-red-600">{errors.location}</p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Date Found*
+              </label>
+              <input
+                type="date"
+                name="foundDate"
+                value={itemFormData.foundDate}
+                onChange={handleItemChange}
+                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                required
+              />
+              {errors.foundDate && (
+                <p className="mt-1 text-sm text-red-600">{errors.foundDate}</p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description
+              </label>
               <textarea
-                id="description"
                 name="description"
                 value={itemFormData.description}
                 onChange={handleItemChange}
                 rows={3}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              ></textarea>
-            </div>
-            
-            <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700">Location Found</label>
-              <select
-                id="location"
-                name="location"
-                value={itemFormData.location}
-                onChange={handleItemChange}
-                required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              >
-                <option value="">Select Location</option>
-                {locations.map(loc => (
-                  <option key={loc} value={loc}>{loc}</option>
-                ))}
-              </select>
-              {errors.location && (
-                <p className="text-red-500 text-xs italic mt-1">{errors.location}</p>
-              )}
-            </div>
-            
-            <div>
-              <label htmlFor="foundDate" className="block text-sm font-medium text-gray-700">Date Found</label>
-              <input
-                type="date"
-                id="foundDate"
-                name="foundDate"
-                value={itemFormData.foundDate}
-                onChange={handleItemChange}
-                required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
               />
-              {errors.foundDate && (
-                <p className="text-red-500 text-xs italic mt-1">{errors.foundDate}</p>
-              )}
             </div>
             
             <div>
-              <label htmlFor="image" className="block text-sm font-medium text-gray-700">Item Image (Optional)</label>
-              <div className="mt-1 flex items-center space-x-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Item Image
+              </label>
+              <div className="flex items-center space-x-4">
                 {imagePreview && (
                   <div className="relative">
                     <img 
-                      src={imagePreview} 
+                      src={imagePreview}
                       alt="Item preview" 
-                      className="h-24 w-24 object-cover rounded border border-gray-300"
+                      className="w-24 h-24 object-cover rounded-md"
                     />
                   </div>
                 )}
                 <input
                   type="file"
-                  id="image"
-                  name="image"
-                  accept="image/*"
                   onChange={handleImageChange}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  accept="image/*"
+                  className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block sm:text-sm border-gray-300"
                 />
               </div>
-              <p className="mt-1 text-sm text-gray-500">
-                Leave empty to keep the current image
-              </p>
             </div>
           </div>
         </div>
         
-        <div className="bg-green-50 p-4 rounded-md">
-          <h3 className="text-lg font-semibold text-green-800 mb-2">Student Information</h3>
-          
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="studentName" className="block text-sm font-medium text-gray-700">Student Name</label>
-              <input
-                type="text"
-                id="studentName"
-                name="studentName"
-                value={studentFormData.studentName}
-                onChange={handleStudentChange}
-                required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-              />
-              {errors.studentName && (
-                <p className="text-red-500 text-xs italic mt-1">{errors.studentName}</p>
-              )}
-            </div>
-            
-            <div>
-              <label htmlFor="studentId" className="block text-sm font-medium text-gray-700">Student ID / Roll Number (5 digits)</label>
-              <input
-                type="text"
-                id="studentId"
-                name="studentId"
-                value={studentFormData.studentId}
-                onChange={handleStudentChange}
-                required
-                maxLength={5}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-              />
-              {errors.studentId && (
-                <p className="text-red-500 text-xs italic mt-1">{errors.studentId}</p>
-              )}
-            </div>
-            
-            <div>
-              <label htmlFor="studentYear" className="block text-sm font-medium text-gray-700">Study Year</label>
-              <select
-                id="studentYear"
-                name="studentYear"
-                value={studentFormData.studentYear}
-                onChange={handleStudentChange}
-                required
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-              >
-                <option value="">Select Study Year</option>
-                <option value="First Year">First Year</option>
-                <option value="Second Year">Second Year</option>
-                <option value="Third Year">Third Year</option>
-                <option value="Fourth Year">Fourth Year</option>
-              </select>
-              {errors.studentYear && (
-                <p className="text-red-500 text-xs italic mt-1">{errors.studentYear}</p>
-              )}
-            </div>
-            
-            <div>
-              <label htmlFor="contactNumber" className="block text-sm font-medium text-gray-700">Contact Number (10 digits)</label>
-              <input
-                type="text"
-                id="contactNumber"
-                name="contactNumber"
-                value={studentFormData.contactNumber}
-                onChange={handleStudentChange}
-                required
-                maxLength={10}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-              />
-              {errors.contactNumber && (
-                <p className="text-red-500 text-xs italic mt-1">{errors.contactNumber}</p>
-              )}
-            </div>
+        <div className="pt-5 border-t border-gray-200">
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              {loading ? 'Saving...' : 'Save Changes'}
+            </button>
           </div>
-        </div>
-        
-        <div className="flex justify-end space-x-3 pt-4 border-t">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            {loading ? 'Updating...' : 'Save Changes'}
-          </button>
         </div>
       </form>
+      
+      {error && (
+        <div className="mt-4 text-red-600 text-sm">
+          {error}
+        </div>
+      )}
     </Modal>
   );
 };
