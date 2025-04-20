@@ -31,7 +31,7 @@ const EditItemModal = ({ isOpen, onClose, item, onSuccess }) => {
       if (item.image) {
         const imageUrl = item.image.startsWith('http') 
           ? item.image 
-          : `http://localhost:5000${item.image}`;
+          : `https://lost-and-found-ruddy.vercel.app${item.image}`;
         setImagePreview(imageUrl);
       } else {
         setImagePreview('');

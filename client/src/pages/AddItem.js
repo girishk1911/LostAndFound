@@ -303,7 +303,7 @@ const AddItem = () => {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       
       // Use the imported axios instance or directly call the API
-      const apiUrl = 'http://localhost:5000/api/items';
+      const apiUrl = 'https://lost-and-found-ruddy.vercel.app/api/items';
       
       const response = await axios.post(
         apiUrl,

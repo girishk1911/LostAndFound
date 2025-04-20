@@ -1,6 +1,6 @@
 import axios from 'axios';
 import authService from './authService';
-const API_URL ='http://localhost:5000/api/items'; ;
+const API_URL ='https://lost-and-found-ruddy.vercel.app/api/items'; ;
 
 // Set auth token for every request
 axios.interceptors.request.use(

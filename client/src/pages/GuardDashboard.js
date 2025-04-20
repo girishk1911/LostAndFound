@@ -167,7 +167,7 @@ const GuardDashboard = () => {
     if (imagePath.startsWith('http')) return imagePath;
     
     // Otherwise, prepend the server URL
-    return `http://localhost:5000${imagePath}`;
+    return `https://lost-and-found-ruddy.vercel.app${imagePath}`;
   };
   
   // Get claim count for an item
