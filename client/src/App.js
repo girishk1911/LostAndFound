@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import GuideSystem from './components/GuideSystem';
 
 // Pages
 import Home from './pages/Home';
@@ -36,15 +37,43 @@ function App() {
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
               
-              {/* Routes that should be protected but currently accessible for development */}
-              <Route path="/GuardDashboard" element={<GuardDashboard />} />
-              <Route path="/dashboard" element={<GuardDashboard />} />
-              <Route path="/additem" element={<AddItem />} />
-              <Route path="/add-item" element={<AddItem />} />
+              {/* Protected Guard Routes */}
+              <Route 
+                path="/GuardDashboard" 
+                element={
+                  <ProtectedRoute requiresGuard>
+                    <GuardDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard" 
+                element={
+                  <ProtectedRoute requiresGuard>
+                    <GuardDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/additem" 
+                element={
+                  <ProtectedRoute requiresGuard>
+                    <AddItem />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/add-item" 
+                element={
+                  <ProtectedRoute requiresGuard>
+                    <AddItem />
+                  </ProtectedRoute>
+                } 
+              />
               <Route 
                 path="/data-analysis" 
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute requiresGuard>
                     <DataAnalysis />
                   </ProtectedRoute>
                 } 
@@ -83,6 +112,7 @@ function App() {
             </Routes>
           </main>
           <Footer />
+          <GuideSystem />
         </div>
         <ToastContainer position="top-right" autoClose={3000} />
       </Router>

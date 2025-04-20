@@ -1,70 +1,93 @@
-const User = require('../models/User');
-const asyncHandler = require('express-async-handler');
+const jwt = require('jsonwebtoken');
+const Guard = require('../models/Guard');
 const config = require('../config/config');
 
-// @desc    Authenticate guard
+// Generate JWT
+const generateToken = (id) => {
+  return jwt.sign({ id }, config.jwtSecret, {
+    expiresIn: '7d',
+  });
+};
+
+// @desc    Authenticate guard & get token
 // @route   POST /api/auth/login
 // @access  Public
-const login = asyncHandler(async (req, res) => {
-  const { username, password } = req.body;
+exports.login = async (req, res) => {
+  try {
+    const { username, password } = req.body;
 
-  // Validate request
-  if (!username || !password) {
-    return res.status(400).json({
-      success: false,
-      message: 'Please provide username and password'
-    });
-  }
-
-  // Check for guard
-  const guard = await User.findByUsername(username);
-  
-  if (!guard) {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid credentials'
-    });
-  }
-
-  // Check password
-  const isMatch = await User.comparePassword(password, guard.password);
-  
-  if (!isMatch) {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid credentials'
-    });
-  }
-
-  // Create token
-  const token = User.getSignedJwtToken(guard);
-
-  res.status(200).json({
-    success: true,
-    token,
-    user: {
-      username: guard.username,
-      role: guard.role
+    // Check for username and password
+    if (!username || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Please provide username and password' 
+      });
     }
-  });
-});
 
-// @desc    Get current logged in user
+    // Find the guard by username
+    const guard = await Guard.findOne({ username });
+
+    if (!guard) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid credentials' 
+      });
+    }
+
+    // Check if password matches
+    const isMatch = await guard.comparePassword(password);
+
+    if (!isMatch) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid credentials' 
+      });
+    }
+
+    // If credentials are valid, generate a token
+    const token = generateToken(guard._id);
+
+    res.json({
+      success: true,
+      token,
+      guard: {
+        id: guard._id,
+        username: guard.username,
+        role: guard.role
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+};
+
+// @desc    Get current guard
 // @route   GET /api/auth/me
 // @access  Private
-const getMe = asyncHandler(async (req, res) => {
-  const user = {
-    username: req.user.username,
-    role: req.user.role
-  };
+exports.getMe = async (req, res) => {
+  try {
+    const guard = await Guard.findById(req.guard.id).select('-password');
+    
+    if (!guard) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Guard not found' 
+      });
+    }
 
-  res.status(200).json({
-    success: true,
-    data: user
-  });
-});
-
-module.exports = {
-  login,
-  getMe
+    res.json({
+      success: true,
+      data: guard
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
 };

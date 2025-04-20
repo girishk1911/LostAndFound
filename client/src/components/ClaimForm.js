@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import { claimItem } from '../services/itemService';
 import ClaimReceipt from './ClaimReceipt';
+import ContextualHelp from './ContextualHelp';
 
 const ClaimForm = ({ itemId, onClaimSubmitted }) => {
   const [userType, setUserType] = useState('Student');
@@ -482,14 +483,16 @@ const ClaimForm = ({ itemId, onClaimSubmitted }) => {
       ) : (
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-2xl font-bold mb-4 text-blue-800">Claim This Item</h2>
-          <p className="mb-4 text-gray-600">
+          <p className="mb-4 text-gray-600 flex items-center">
             Please fill out this form to claim the item. Verification details will be sent to your email address.
+            <ContextualHelp topic="verify-claim" position="right" />
           </p>
           
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2">
+              <label className="block text-gray-700 text-sm font-bold mb-2 flex items-center">
                 I am a: *
+                <ContextualHelp topic="verify-claim" position="right" />
               </label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {['Student', 'Staff', 'Guard', 'Helper'].map((type) => (
@@ -512,25 +515,26 @@ const ClaimForm = ({ itemId, onClaimSubmitted }) => {
             {renderFormFields()}
             
             <div className="mb-4">
-              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
+              <label className="block text-gray-700 text-sm font-bold mb-2 flex items-center" htmlFor="email">
                 Email Address *
+                <ContextualHelp topic="verification-time" position="right" />
               </label>
               <input
                 className={`shadow appearance-none border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
                 id="email"
                 name="email"
                 type="email"
-                placeholder="your.email@example.com"
+                placeholder="Your email address"
                 value={formData.email}
                 onChange={handleChange}
                 required
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Verification details and instructions will be sent to this email
+              </p>
               {errors.email && (
                 <p className="text-red-500 text-xs italic mt-1">{errors.email}</p>
               )}
-              <p className="text-xs text-gray-500 mt-1">
-                Verification details will be sent to this email address
-              </p>
             </div>
             
             <div className="flex justify-end">

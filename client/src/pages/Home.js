@@ -125,7 +125,7 @@ const Home = () => {
                 Lost Something?
               </h1>
               <p className="mt-6 text-xl max-w-3xl">
-                The PICT College Lost & Found portal helps students find their lost belongings. 
+                The PICT College Lost & Found portal helps students,staff find their lost belongings. 
                 Browse through items that have been found on campus and claim what's yours.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">

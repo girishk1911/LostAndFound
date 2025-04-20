@@ -1,41 +1,52 @@
 const jwt = require('jsonwebtoken');
+const Guard = require('../models/Guard');
 const config = require('../config/config');
 const asyncHandler = require('express-async-handler');
 
-// Protect routes
-const protect = asyncHandler(async (req, res, next) => {
+// Protect routes - middleware to verify token and set guard on request
+const protect = async (req, res, next) => {
   let token;
 
+  // Check if token exists in headers
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
-    try {
-      // Get token from header
-      token = req.headers.authorization.split(' ')[1];
-
-      // Verify token
-      const decoded = jwt.verify(token, config.JWT_SECRET);
-
-      // Add user from token to request
-      req.user = {
-        username: decoded.id,
-        role: decoded.role
-      };
-
-      next();
-    } catch (error) {
-      console.error(error);
-      res.status(401);
-      throw new Error('Not authorized, token failed');
-    }
+    // Extract token from Bearer format
+    token = req.headers.authorization.split(' ')[1];
   }
 
+  // Check if token exists
   if (!token) {
-    res.status(401);
-    throw new Error('Not authorized, no token');
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Not authorized to access this route' 
+    });
   }
-});
+
+  try {
+    // Verify token
+    const decoded = jwt.verify(token, config.jwtSecret);
+
+    // Get guard from the token
+    req.guard = await Guard.findById(decoded.id).select('-password');
+
+    if (!req.guard) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Not authorized to access this route' 
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error(error);
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Not authorized to access this route' 
+    });
+  }
+};
 
 // Role authorization
 const authorize = (role) => {

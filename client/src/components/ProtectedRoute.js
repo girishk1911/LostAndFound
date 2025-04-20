@@ -15,17 +15,28 @@ const ProtectedRoute = ({ children, requiresGuard = false }) => {
     );
   }
   
-  // Redirect to login if not authenticated
+  // Check if authenticated
   if (!isAuthenticated()) {
+    console.log("Not authenticated, redirecting to login");
     return <Navigate to="/login" replace />;
   }
   
-  // If route requires guard role, check user role
-  if (requiresGuard && !isGuard()) {
-    return <Navigate to="/" replace />;
+  // Check for guard role if required
+  if (requiresGuard) {
+    // First check if user object is loaded
+    if (!user) {
+      console.log("User object not loaded, redirecting to login");
+      return <Navigate to="/login" replace />;
+    }
+    
+    // Then check if user has guard role
+    if (!isGuard()) {
+      console.log("Not a guard, redirecting to home");
+      return <Navigate to="/" replace />;
+    }
   }
   
-  // User is authenticated (and has required role if specified)
+  // User is authenticated and has required role if needed
   return children;
 };
 

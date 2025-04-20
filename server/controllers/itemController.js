@@ -3,6 +3,25 @@ const asyncHandler = require('express-async-handler');
 const path = require('path');
 const fs = require('fs');
 
+// Helper function to format verification time for an item
+const formatVerificationTime = (item) => {
+  if (!item || !item.verificationDateTime) return null;
+  
+  const verificationDate = new Date(item.verificationDateTime);
+  return {
+    verificationDate: verificationDate.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }),
+    verificationTime: verificationDate.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  };
+};
+
 // @desc    Get all items
 // @route   GET /api/items
 // @access  Public
@@ -19,10 +38,19 @@ const getItems = asyncHandler(async (req, res) => {
   
   const items = await Item.find(query).sort('-createdAt');
   
+  // Format verification times for each item
+  const itemsWithVerification = items.map(item => {
+    const itemObj = item.toObject();
+    return {
+      ...itemObj,
+      verification: formatVerificationTime(item)
+    };
+  });
+  
   res.status(200).json({
     success: true,
     count: items.length,
-    data: items
+    data: itemsWithVerification
   });
 });
 
@@ -34,10 +62,20 @@ const getRecentItems = asyncHandler(async (req, res) => {
   const items = await Item.find({ status: 'available' })
     .sort('-createdAt')
     .limit(8);
+    
+  // Format verification times for each item
+  const itemsWithVerification = items.map(item => {
+    const itemObj = item.toObject();
+    return {
+      ...itemObj,
+      verification: formatVerificationTime(item)
+    };
+  });
+  
   res.status(200).json({
     success: true,
     count: items.length,
-    data: items
+    data: itemsWithVerification
   });
 });
 
@@ -66,10 +104,19 @@ const searchItems = asyncHandler(async (req, res) => {
   
   console.log(`Found ${items.length} items matching the search term`);
   
+  // Format verification times for each item
+  const itemsWithVerification = items.map(item => {
+    const itemObj = typeof item.toObject === 'function' ? item.toObject() : item;
+    return {
+      ...itemObj,
+      verification: formatVerificationTime(item)
+    };
+  });
+  
   res.status(200).json({
     success: true,
     count: items.length,
-    data: items
+    data: itemsWithVerification
   });
 });
 
@@ -86,9 +133,13 @@ const getItem = asyncHandler(async (req, res) => {
     });
   }
 
+  // Add formatted verification time for all items
+  let formattedVerification = formatVerificationTime(item);
+
   res.status(200).json({
     success: true,
-    data: item
+    data: item,
+    verification: formattedVerification
   });
 });
 
@@ -308,14 +359,24 @@ const createItem = asyncHandler(async (req, res) => {
     console.log('Created item with foundDate:', item.foundDate);
     console.log('Item foundDate type:', typeof item.foundDate);
     
+    // Set verification time to 24 hours from now
+    const verificationTime = new Date();
+    verificationTime.setHours(verificationTime.getHours() + 24);
+    item.verificationDateTime = verificationTime;
+    await item.save();
+    
     // Fetch the item again to verify how it's stored in the database
     const savedItem = await Item.findById(item._id);
     console.log('Retrieved item after save:', savedItem);
     console.log('Retrieved foundDate:', savedItem.foundDate);
 
+    // Format verification time for response
+    const formattedVerification = formatVerificationTime(savedItem);
+
     res.status(201).json({
       success: true,
-      data: item
+      data: savedItem,
+      verification: formattedVerification
     });
   } catch (error) {
     // If there's an error, clean up the uploaded file

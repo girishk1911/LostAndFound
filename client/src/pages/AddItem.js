@@ -5,6 +5,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FaCamera, FaUpload, FaCheckCircle, FaTrash } from 'react-icons/fa';
 import { formatDate, parseDateForServer } from '../utils/dateUtils';
+import ContextualHelp from '../components/ContextualHelp';
 
 const AddItem = () => {
   const [formData, setFormData] = useState({
@@ -563,7 +564,7 @@ const AddItem = () => {
         <form onSubmit={handleSubmit} className="p-6">
           <div className="mb-8">
             <label className="block text-gray-700 text-sm font-bold mb-3">
-              Item Image*
+              Item Image* <ContextualHelp topic="upload-photo" />
             </label>
             
             {!imagePreview ? (
@@ -604,7 +605,7 @@ const AddItem = () => {
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             <div>
               <label htmlFor="name" className="block text-gray-700 text-sm font-bold mb-2">
-                Item Name*
+                Item Name* <ContextualHelp topic="add-item" />
               </label>
               <input
                 type="text"
@@ -620,7 +621,7 @@ const AddItem = () => {
             
             <div>
               <label htmlFor="category" className="block text-gray-700 text-sm font-bold mb-2">
-                Category*
+                Category* <ContextualHelp topic="add-item" />
               </label>
               <select
                 id="category"
@@ -639,7 +640,7 @@ const AddItem = () => {
             
             <div>
               <label htmlFor="location" className="block text-gray-700 text-sm font-bold mb-2">
-                Found Location*
+                Found Location* <ContextualHelp topic="add-item" />
               </label>
               <select
                 id="location"
@@ -658,7 +659,7 @@ const AddItem = () => {
             
             <div>
               <label htmlFor="foundDate" className="block text-gray-700 text-sm font-bold mb-2">
-                Date Found*
+                Date Found* <ContextualHelp topic="add-item" />
               </label>
               <input
                 type="date"
@@ -678,7 +679,7 @@ const AddItem = () => {
           
           <div className="mb-6">
             <label htmlFor="description" className="block text-gray-700 text-sm font-bold mb-2">
-              Description
+              Description <ContextualHelp topic="add-item" />
             </label>
             <textarea
               id="description"
@@ -693,8 +694,9 @@ const AddItem = () => {
           
           <div className="mb-6">
             <h3 className="text-xl font-bold text-blue-800 mb-4">Contributor Information</h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 mb-4 flex items-center">
               Please enter details of the person who found and submitted this item.
+              <ContextualHelp topic="add-item" position="right" />
             </p>
             
             <div className="mb-4">

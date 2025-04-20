@@ -216,9 +216,10 @@ export const safeParseDateString = (dateString) => {
 /**
  * Format a date with time in DD-MM-YYYY HH:MM format
  * @param {string|Date} dateTimeString - Date and time to format
+ * @param {boolean} useLocalTimezone - Whether to display in local timezone (India GMT+5:30)
  * @returns {string} Formatted date and time string
  */
-export const formatDateTime = (dateTimeString) => {
+export const formatDateTime = (dateTimeString, useLocalTimezone = true) => {
   if (!dateTimeString) return 'N/A';
   
   try {
@@ -230,16 +231,34 @@ export const formatDateTime = (dateTimeString) => {
       return 'Invalid date';
     }
     
-    // Format the date part (DD-MM-YYYY)
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    
-    // Format the time part (HH:MM)
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    
-    return `${day}-${month}-${year} ${hours}:${minutes}`;
+    if (useLocalTimezone) {
+      // Format using local timezone (for India, this will be GMT+5:30)
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      
+      // Format the time part (HH:MM)
+      let hours = date.getHours();
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      
+      // Convert to 12-hour format
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // the hour '0' should be '12'
+      
+      return `${day}-${month}-${year} ${hours}:${minutes} ${ampm}`;
+    } else {
+      // Format using UTC time
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const year = date.getUTCFullYear();
+      
+      // Format the time part (HH:MM)
+      const hours = String(date.getUTCHours()).padStart(2, '0');
+      const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+      
+      return `${day}-${month}-${year} ${hours}:${minutes} UTC`;
+    }
   } catch (e) {
     console.error('Error formatting date and time:', e);
     return 'Invalid date';

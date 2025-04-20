@@ -268,6 +268,7 @@ const ItemSchema = new mongoose.Schema({
   verificationDateTime: {
     type: Date,
     default: function() {
+      // Always set verification date to 24 hours from creation
       const date = new Date(this.createdAt || Date.now());
       date.setDate(date.getDate() + 1);
       return date;

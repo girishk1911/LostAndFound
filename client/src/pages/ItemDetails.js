@@ -15,6 +15,7 @@ const ItemDetails = () => {
   const navigate = useNavigate();
   const { isGuard } = useContext(AuthContext);
   const [item, setItem] = useState(null);
+  const [verification, setVerification] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showClaimForm, setShowClaimForm] = useState(false);
@@ -27,6 +28,8 @@ const ItemDetails = () => {
         setLoading(true);
         const response = await axios.get(`http://localhost:5000/api/items/${id}`);
         setItem(response.data.data);
+        setVerification(response.data.verification);
+        console.log('Item verification data:', response.data.verification);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching item:', err);
@@ -52,6 +55,7 @@ const ItemDetails = () => {
       try {
         const response = await axios.get(`http://localhost:5000/api/items/${id}`);
         setItem(response.data.data);
+        setVerification(response.data.verification);
         toast.success('Claim submitted successfully!');
       } catch (err) {
         console.error('Error fetching updated item:', err);
@@ -71,6 +75,7 @@ const ItemDetails = () => {
       // Refresh the item data
       const response = await axios.get(`http://localhost:5000/api/items/${id}`);
       setItem(response.data.data);
+      setVerification(response.data.verification);
     } catch (err) {
       console.error('Error marking item as delivered:', err);
       toast.error('Failed to update item status');
@@ -168,25 +173,28 @@ const ItemDetails = () => {
                 </div>
               )}
               
-              {item.status === 'claimed' && !isGuard() && (
-                <>
-                  <div className="flex items-center mb-2">
-                    <FaClock className="text-blue-600 mr-2" />
-                    <span className="text-gray-700 font-medium">Verification Date & Time:</span>
-                    <span className="ml-2">{formatDateTime(item.verificationDateTime)}</span>
-                  </div>
-                  
-                  <div className="flex items-start mb-4">
-                    <FaInfoCircle className="text-blue-600 mr-2 mt-1" />
-                    <div>
-                      <span className="text-gray-700 font-medium">Verification Info:</span>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Please bring your college ID card for verification with the security guard.
-                      </p>
-                    </div>
-                  </div>
-                </>
+              {/* Show verification time for ALL items */}
+              {verification && (
+                <div className="flex items-center mb-2">
+                  <FaClock className="text-blue-600 mr-2" />
+                  <span className="text-gray-700 font-medium">Verification Date & Time:</span>
+                  <span className="ml-2">
+                    {verification.verificationDate} at {verification.verificationTime}
+                  </span>
+                </div>
               )}
+              
+              {/* Show verification info for all items */}
+              <div className="flex items-start mb-4">
+                <FaInfoCircle className="text-blue-600 mr-2 mt-1" />
+                <div>
+                  <span className="text-gray-700 font-medium">Verification Info:</span>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Please bring your college ID card for verification with the security guard.
+                    {item.status !== 'claimed' && ' You must first claim this item to proceed with verification.'}
+                  </p>
+                </div>
+              </div>
               
               {item.status === 'delivered' && item.deliveredTo && (
                 <div className="flex items-start mb-2">
@@ -339,6 +347,7 @@ const ItemDetails = () => {
               try {
                 const response = await axios.get(`http://localhost:5000/api/items/${id}`);
                 setItem(response.data.data);
+                setVerification(response.data.verification);
               } catch (err) {
                 console.error('Error fetching item:', err);
               }
