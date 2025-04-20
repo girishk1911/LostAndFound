@@ -94,21 +94,21 @@ try {
 
 // Start Server
 const PORT = config.port || 5000;
-const server = app.listen(PORT, () => {
-  console.log(`Server running in ${config.nodeEnv} mode on port ${PORT}`);
-  console.log(`Server is accessible at http://localhost:${PORT}`);
+// const server = app.listen(PORT, () => {
+//   console.log(`Server running in ${config.nodeEnv} mode on port ${PORT}`);
+//   console.log(`Server is accessible at http://localhost:${PORT}`);
   
-  // Start the claim scheduler - check every 30 minutes
-  startScheduler(30);
-});
+//   // Start the claim scheduler - check every 30 minutes
+//   startScheduler(30);
+// });
 
 // Handle server errors
-server.on('error', (error) => {
-  if (error.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use`);
-    process.exit(1);
-  }
-  throw error;
-});
+// server.on('error', (error) => {
+//   if (error.code === 'EADDRINUSE') {
+//     console.error(`Port ${PORT} is already in use`);
+//     process.exit(1);
+//   }
+//   throw error;
+// });
 
 module.exports = app;
