@@ -10,7 +10,7 @@ export const AuthProvider = ({ children }) => {
   // Login function to be used by Login component
   const login = useCallback(async (username, password) => {
     try {
-      const response = await axios.post('https://pictlostandfound.vercel.app/api/auth/login', { username, password });
+      const response = await axios.post('https://lost-and-found-ruddy.vercel.app/api/auth/login', { username, password });
       
       if (response.data.success && response.data.token) {
         const userData = {
