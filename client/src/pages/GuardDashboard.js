@@ -12,7 +12,7 @@ import SuccessModal from "../components/SuccessModal";
 import { formatDate, formatDateTime } from "../utils/dateUtils";
 import SearchBar from "../components/SearchBar";
 import ContextualHelp from "../components/ContextualHelp";
-import { getImageUrl } from '../utils/urlHelper';
+import { getImageUrl } from "../utils/urlHelper";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");

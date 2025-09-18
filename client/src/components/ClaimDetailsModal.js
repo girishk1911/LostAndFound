@@ -11,7 +11,7 @@ import {
 import { formatDate, formatDateTime } from "../utils/dateUtils";
 import { deliverItem } from "../services/itemService";
 import { toast } from "react-toastify";
-import { getImageUrl } from '../utils/urlHelper';
+import { getImageUrl } from "../utils/urlHelper";
 
 const ClaimDetailsModal = ({ isOpen, onClose, item, onSuccess }) => {
   const [selectedClaimIndex, setSelectedClaimIndex] = useState(null);

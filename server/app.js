@@ -4,15 +4,14 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const path = require("path");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
-const config = require("./config/config");
 const { startScheduler } = require("./utils/claimScheduler");
 
 // Load environment variables
 dotenv.config();
 
-// Connect to MongoDB
+// Connect to MongoDB - using direct connection string
 mongoose
-  .connect(config.mongoURI)
+  .connect("mongodb+srv://rishi:RG8172004@cluster0.u65kq.mongodb.net/pict-lostfound")
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
@@ -93,9 +92,9 @@ try {
 //ends here
 
 // Start Server
-const PORT = config.port || 5000;
+const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
-  console.log(`Server running in ${config.nodeEnv} mode on port ${PORT}`);
+  console.log(`Server running in development mode on port ${PORT}`);
   console.log(`Server is accessible at http://localhost:${PORT}`);
 
   // Start the claim scheduler - check every 30 minutes

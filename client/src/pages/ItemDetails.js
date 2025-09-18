@@ -19,8 +19,8 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import { AuthContext } from "../context/AuthContext";
 import { formatDate, formatDateTime } from "../utils/dateUtils";
 import ClaimDetailsModal from "../components/ClaimDetailsModal";
-import config from '../config/config';
-import { getImageUrl } from '../utils/urlHelper';
+import config from "../config/config";
+import { getImageUrl } from "../utils/urlHelper";
 
 const ItemDetails = () => {
   const { id } = useParams();
@@ -38,9 +38,7 @@ const ItemDetails = () => {
     const fetchItem = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(
-          `${config.API_URL}/api/items/${id}`
-        );
+        const response = await axios.get(`${config.API_URL}/api/items/${id}`);
         setItem(response.data.data);
         setVerification(response.data.verification);
         console.log("Item verification data:", response.data.verification);
@@ -67,9 +65,7 @@ const ItemDetails = () => {
     // Reload the item to get updated status
     const fetchUpdatedItem = async () => {
       try {
-        const response = await axios.get(
-          `${config.API_URL}/api/items/${id}`
-        );
+        const response = await axios.get(`${config.API_URL}/api/items/${id}`);
         setItem(response.data.data);
         setVerification(response.data.verification);
         toast.success("Claim submitted successfully!");
