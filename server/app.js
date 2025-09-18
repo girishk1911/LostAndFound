@@ -37,16 +37,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, 'public/uploads');
-const fs = require('fs');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Static files - serve the public directory
+// Static files - serve the public directory (removing uploads since using Cloudinary)
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // Route Registration
 app.use('/', require('./routes')); // Main API routes

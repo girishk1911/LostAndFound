@@ -1,23 +1,18 @@
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const cloudinary = require('../config/cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, '../public/uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Set up storage for uploaded files
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    cb(
-      null,
-      `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`
-    );
+// Set up Cloudinary storage for uploaded files
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'lost-and-found', // Folder in Cloudinary to store images
+    allowed_formats: ['jpeg', 'jpg', 'png', 'gif'],
+    transformation: [
+      { width: 800, height: 600, crop: 'limit' }, // Resize images to max 800x600
+      { quality: 'auto' } // Automatic quality optimization
+    ]
   }
 });
 
