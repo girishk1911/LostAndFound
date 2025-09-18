@@ -11,7 +11,9 @@ dotenv.config();
 
 // Connect to MongoDB - using direct connection string
 mongoose
-  .connect("mongodb+srv://rishi:RG8172004@cluster0.u65kq.mongodb.net/pict-lostfound")
+  .connect(
+    "mongodb+srv://rishi:RG8172004@cluster0.u65kq.mongodb.net/pict-lostfound"
+  )
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.error("MongoDB connection error:", err));
 

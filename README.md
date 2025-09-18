@@ -1,10 +1,23 @@
 # PICT Lost & Found System
 
+## 🔄 Deployment Counter: **1**
+
+_Tracking deployment attempts for backend-frontend connectivity_
+
+---
+
 A digital platform to manage lost and found items efficiently within an educational institution.
 
 ## Overview
 
 The PICT Lost & Found System is a web application designed to streamline the process of cataloging, claiming, and returning lost items. The system bridges the gap between those who have lost items and those who have found them by providing a central repository with verification mechanisms.
+
+## Current Deployment Status
+
+- **Backend**: Simplified configuration ✅
+- **Cloudinary Integration**: Active ✅
+- **Environment Variables**: Removed for simplicity ✅
+- **Status**: Ready for clean backend deployment
 
 ## Key Features
 
@@ -14,6 +27,7 @@ The PICT Lost & Found System is a web application designed to streamline the pro
 - **User Roles**: Different interfaces for guards (admin) and general users
 - **Interactive Help**: Guided tour and contextual help for new users
 - **Responsive UI**: Mobile-friendly interface using React and Tailwind CSS
+- **Cloud Storage**: Images stored on Cloudinary for cross-device compatibility
 
 ## Tech Stack
 
@@ -26,6 +40,7 @@ The PICT Lost & Found System is a web application designed to streamline the pro
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js (v14.x or higher)
 - MongoDB
 - npm or yarn
@@ -33,11 +48,13 @@ The PICT Lost & Found System is a web application designed to streamline the pro
 ### Installation
 
 1. Clone the repository
+
    ```
    git clone https://github.com/yourusername/pict-lost-and-found.git
    ```
 
 2. Install dependencies
+
    ```
    # Install server dependencies
    cd server
@@ -49,7 +66,9 @@ The PICT Lost & Found System is a web application designed to streamline the pro
    ```
 
 3. Configure environment variables
+
    - Create a `.env` file in the server directory with:
+
    ```
    MONGO_URI=your_mongodb_connection_string
    JWT_SECRET=your_jwt_secret_key
@@ -62,6 +81,7 @@ The PICT Lost & Found System is a web application designed to streamline the pro
    ```
 
 4. Start the application
+
    ```
    # Start the server
    cd server
@@ -77,12 +97,14 @@ The PICT Lost & Found System is a web application designed to streamline the pro
 ## Usage
 
 ### For Guards (Admin)
+
 - Login with guard credentials
 - Add new lost items to the system
 - Verify item claims and mark items as delivered
 - View expiry claims and manage items
 
 ### For Students/Staff
+
 - Browse available lost items
 - Submit claims for found items
 - Receive email notifications about claim status
@@ -91,4 +113,4 @@ The PICT Lost & Found System is a web application designed to streamline the pro
 ## Acknowledgements
 
 - Pune Institute of Computer Technology (PICT)
-- All contributors to the project 
+- All contributors to the project
