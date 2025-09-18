@@ -53,7 +53,7 @@ app.get("/", (req, res) => {
     message: "🚀 PICT Lost & Found Backend is Live!",
     status: "success",
     timestamp: new Date().toISOString(),
-    testEndpoint: "/api/test"
+    testEndpoint: "/api/test",
   });
 });
 
@@ -68,10 +68,10 @@ app.get("/api/test", (req, res) => {
       test: "GET /api/test",
       items: "GET /api/items",
       auth: "POST /api/auth/login",
-      addItem: "POST /api/items"
+      addItem: "POST /api/items",
     },
     database: "MongoDB Connected",
-    cloudinary: "Integrated for image storage"
+    cloudinary: "Integrated for image storage",
   });
 });
 
