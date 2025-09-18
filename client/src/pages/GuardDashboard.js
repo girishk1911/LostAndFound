@@ -159,15 +159,17 @@ const GuardDashboard = () => {
     }
   };
 
-  // Get the proper image URL
+  // Get the proper image URL 
   const getImageUrl = (imagePath) => {
-    if (!imagePath) return '/assets/images/placeholder.png';
+
+    console.log(imagePath); 
+    // if (!imagePath) return '/assets/images/placeholder.png';
     
     // If it's a full URL already, return as is
-    if (imagePath.startsWith('http')) return imagePath;
+    // if (imagePath.startsWith('http')) return imagePath;
     
     // Otherwise, prepend the server URL
-    return `https://lost-and-found-ruddy.vercel.app${imagePath}`;
+    return 'http://localhost:5000'+imagePath;
   };
   
   // Get claim count for an item
@@ -330,7 +332,9 @@ const GuardDashboard = () => {
                             className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer"
                             onClick={() => handleRowClick(item)}
                           >
+                            {/* {console.log(item)};   */}
                             <td className="py-3 px-4">
+                              {console.log(getImageUrl(item.image))}
                               <img
                                 src={getImageUrl(item.image)}
                                 alt={item.name}

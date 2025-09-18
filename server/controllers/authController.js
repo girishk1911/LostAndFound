@@ -9,9 +9,7 @@ const generateToken = (id) => {
   });
 };
 
-// @desc    Authenticate guard & get token
-// @route   POST /api/auth/login
-// @access  Public
+
 exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -65,9 +63,7 @@ exports.login = async (req, res) => {
   }
 };
 
-// @desc    Get current guard
-// @route   GET /api/auth/me
-// @access  Private
+
 exports.getMe = async (req, res) => {
   try {
     const guard = await Guard.findById(req.guard.id).select('-password');

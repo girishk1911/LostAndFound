@@ -31,7 +31,7 @@ const sendExpiredClaimNotifications = async (expiredClaims, item) => {
           <p>The verification window has now passed. If you still believe this item belongs to you, you will need to submit a new claim on our website.</p>
           
           <p>You can visit our Lost & Found system to view available items and submit a new claim:</p>
-          <p style="text-align: center;"><a href="http://localhost:3000/lost-items" style="background-color: #1976d2; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px; display: inline-block;">Visit Lost & Found</a></p>
+          <p style="text-align: center;"><a href="http://localhost:5000/lost-items" style="background-color: #1976d2; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px; display: inline-block;">Visit Lost & Found</a></p>
           
           <p>Note: Please make sure to attend the verification session for your next claim. Verification sessions are scheduled 24 hours after an item is uploaded.</p>
           

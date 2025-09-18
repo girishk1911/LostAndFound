@@ -29,4 +29,4 @@ const CategoryFilter = ({ categories, selectedCategory, onSelectCategory }) => {
   );
 };
 
-export default CategoryFilter;
+export default CategoryFilter; 

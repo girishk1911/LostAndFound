@@ -852,6 +852,8 @@ const getItemStatistics = asyncHandler(async (req, res) => {
 // @access  Public
 const getContributors = asyncHandler(async (req, res) => {
   const now = new Date();
+
+  console.log(now);
   
   // Find items with contributor information where displayUntil date is greater than or equal to now
   // Check for valid contributor name based on type (student, staff, guard, or helper)
@@ -866,6 +868,8 @@ const getContributors = asyncHandler(async (req, res) => {
   })
   .sort('-contributor.submittedDate')
   .limit(10);
+
+  console.log("items : "+items);
   
   res.status(200).json(items);
 });

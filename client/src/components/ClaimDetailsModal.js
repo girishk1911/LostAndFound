@@ -36,6 +36,7 @@ const ClaimDetailsModal = ({ isOpen, onClose, item, onSuccess }) => {
       setIsProcessing(false);
     }
   };
+
   
   const claimsCount = item.claims?.length || 0;
   
@@ -195,7 +196,7 @@ const ClaimDetailsModal = ({ isOpen, onClose, item, onSuccess }) => {
             <div className="flex flex-col md:flex-row mb-6 gap-6">
               <div className="md:w-1/3">
                 <img
-                  src={`https://lost-and-found-ruddy.vercel.app${item.image}`}
+                  src={`http://localhost:5000${item.image}`}
                   alt={item.name}
                   className="w-full h-auto rounded-lg object-cover"
                   onError={(e) => {
