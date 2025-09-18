@@ -163,10 +163,10 @@ const GuardDashboard = () => {
   const getImageUrl = (imagePath) => {
 
     console.log(imagePath); 
-    // if (!imagePath) return '/assets/images/placeholder.png';
+    if (!imagePath) return '/assets/images/placeholder.png';
     
     // If it's a full URL already, return as is
-    // if (imagePath.startsWith('http')) return imagePath;
+    if (imagePath.startsWith('http')) return imagePath;
     
     // Otherwise, prepend the server URL
     return 'http://localhost:5000'+imagePath;

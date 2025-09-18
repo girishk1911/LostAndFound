@@ -109,7 +109,7 @@ const ItemDetails = () => {
               onClick={() => setShowImageModal(true)}
             >
               <img 
-                src={`http://localhost:5000${item.image}`}
+                src={item.image.startsWith('http') ? item.image : `http://localhost:5000${item.image}`}
                 alt={item.name}
                 className="w-full h-64 object-cover md:h-80"
                 onError={(e) => {
@@ -322,7 +322,7 @@ const ItemDetails = () => {
               <FaTimes className="h-6 w-6" />
             </button>
             <img 
-              src={`http://localhost:5000${item.image}`}
+              src={item.image.startsWith('http') ? item.image : `http://localhost:5000${item.image}`}
               alt={item.name}
               className="w-full h-auto max-h-[90vh] object-contain"
               onError={(e) => {
