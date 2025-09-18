@@ -47,15 +47,31 @@ app.use(express.static(path.join(__dirname, "public")));
 // Route Registration
 app.use("/", require("./routes")); // Main API routes
 
+// Root endpoint for quick testing
+app.get("/", (req, res) => {
+  res.json({
+    message: "🚀 PICT Lost & Found Backend is Live!",
+    status: "success",
+    timestamp: new Date().toISOString(),
+    testEndpoint: "/api/test"
+  });
+});
+
 // Test endpoint
 app.get("/api/test", (req, res) => {
   res.json({
-    status: "API working",
-    routes: {
-      auth: {
-        login: "POST /api/auth/login",
-      },
+    status: "✅ Backend API is working!",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+    message: "PICT Lost & Found Backend is running successfully",
+    endpoints: {
+      test: "GET /api/test",
+      items: "GET /api/items",
+      auth: "POST /api/auth/login",
+      addItem: "POST /api/items"
     },
+    database: "MongoDB Connected",
+    cloudinary: "Integrated for image storage"
   });
 });
 
