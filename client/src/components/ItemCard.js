@@ -1,4 +1,5 @@
 import React from 'react';
+import { getImageUrl } from '../utils/urlHelper';
 import { Link } from 'react-router-dom';
 
 const ItemCard = ({ item }) => {
@@ -40,21 +41,15 @@ const ItemCard = ({ item }) => {
   };
   
   // Get the proper image URL
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return '/assets/images/placeholder.png';
-    
-    // If it's a full URL already, return as is
-    if (imagePath.startsWith('http')) return imagePath;
-    
-    // Otherwise, prepend the server URL
-    return `http://localhost:5000${imagePath}`;
+  const getImageSrc = (imagePath) => {
+    return getImageUrl(imagePath) || '/assets/images/placeholder.png';
   };
   
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-300 hover:shadow-lg hover:-translate-y-1">
       <div className="relative h-48 bg-gray-200">
         <img
-          src={getImageUrl(image)}
+          src={getImageSrc(image)}
           alt={name}
           className="w-full h-full object-cover"
           onError={(e) => {

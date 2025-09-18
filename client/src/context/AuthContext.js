@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import config from '../config/config';
 
 export const AuthContext = createContext();
 
@@ -10,7 +11,7 @@ export const AuthProvider = ({ children }) => {
   // Login function to be used by Login component
   const login = useCallback(async (username, password) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', { username, password });
+      const response = await axios.post(`${config.API_URL}/api/auth/login`, { username, password });
       
       if (response.data.success && response.data.token) {
         const userData = {
