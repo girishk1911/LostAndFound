@@ -1,10 +1,10 @@
-const cloudinary = require('cloudinary').v2;
+const cloudinary = require("cloudinary").v2;
 
 // Configure Cloudinary
 cloudinary.config({
-  cloud_name: 'dxqirkx5m',
-  api_key: '839181327468946',
-  api_secret: 'Ifw55BajFeuxa1LqNTVqIy30BRU'
+  cloud_name: "dxqirkx5m",
+  api_key: "839181327468946",
+  api_secret: "Ifw55BajFeuxa1LqNTVqIy30BRU",
 });
 
 module.exports = cloudinary;
