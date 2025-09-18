@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { FaCamera, FaUpload, FaCheckCircle, FaTrash } from 'react-icons/fa';
 import { formatDate, parseDateForServer } from '../utils/dateUtils';
 import ContextualHelp from '../components/ContextualHelp';
+import config from '../config/config';
 
 const AddItem = () => {
   const [formData, setFormData] = useState({
@@ -304,7 +305,7 @@ const AddItem = () => {
       
       // Use the imported axios instance or directly call the API
       // const apiUrl = 'http://localhost:5000/api/items';
-      const apiUrl = 'http://localhost:5000/api/items';
+      const apiUrl = `${config.API_URL}/api/items`;
 
       
       const response = await axios.post(

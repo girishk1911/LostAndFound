@@ -19,6 +19,8 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import { AuthContext } from "../context/AuthContext";
 import { formatDate, formatDateTime } from "../utils/dateUtils";
 import ClaimDetailsModal from "../components/ClaimDetailsModal";
+import config from '../config/config';
+import { getImageUrl } from '../utils/urlHelper';
 
 const ItemDetails = () => {
   const { id } = useParams();
@@ -37,7 +39,7 @@ const ItemDetails = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          `http://localhost:5000/api/items/${id}`
+          `${config.API_URL}/api/items/${id}`
         );
         setItem(response.data.data);
         setVerification(response.data.verification);
@@ -66,7 +68,7 @@ const ItemDetails = () => {
     const fetchUpdatedItem = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:5000/api/items/${id}`
+          `${config.API_URL}/api/items/${id}`
         );
         setItem(response.data.data);
         setVerification(response.data.verification);
@@ -82,12 +84,12 @@ const ItemDetails = () => {
 
   const handleMarkAsDelivered = async () => {
     try {
-      await axios.put(`http://localhost:5000/api/items/${id}/status`, {
+      await axios.put(`${config.API_URL}/api/items/${id}/status`, {
         status: "delivered",
       });
       toast.success("Item marked as delivered");
       // Refresh the item data
-      const response = await axios.get(`http://localhost:5000/api/items/${id}`);
+      const response = await axios.get(`${config.API_URL}/api/items/${id}`);
       setItem(response.data.data);
       setVerification(response.data.verification);
     } catch (err) {
@@ -126,7 +128,7 @@ const ItemDetails = () => {
                 src={
                   item.image.startsWith("http")
                     ? item.image
-                    : `http://localhost:5000${item.image}`
+                    : getImageUrl(item.image)
                 }
                 alt={item.name}
                 className="w-full h-64 object-cover md:h-80"
@@ -377,7 +379,7 @@ const ItemDetails = () => {
               src={
                 item.image.startsWith("http")
                   ? item.image
-                  : `http://localhost:5000${item.image}`
+                  : getImageUrl(item.image)
               }
               alt={item.name}
               className="w-full h-auto max-h-[90vh] object-contain"
@@ -402,7 +404,7 @@ const ItemDetails = () => {
             const fetchItem = async () => {
               try {
                 const response = await axios.get(
-                  `http://localhost:5000/api/items/${id}`
+                  `${config.API_URL}/api/items/${id}`
                 );
                 setItem(response.data.data);
                 setVerification(response.data.verification);

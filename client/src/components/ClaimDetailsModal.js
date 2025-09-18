@@ -11,6 +11,7 @@ import {
 import { formatDate, formatDateTime } from "../utils/dateUtils";
 import { deliverItem } from "../services/itemService";
 import { toast } from "react-toastify";
+import { getImageUrl } from '../utils/urlHelper';
 
 const ClaimDetailsModal = ({ isOpen, onClose, item, onSuccess }) => {
   const [selectedClaimIndex, setSelectedClaimIndex] = useState(null);
@@ -214,7 +215,7 @@ const ClaimDetailsModal = ({ isOpen, onClose, item, onSuccess }) => {
                   src={
                     item.image.startsWith("http")
                       ? item.image
-                      : `http://localhost:5000${item.image}`
+                      : getImageUrl(item.image)
                   }
                   alt={item.name}
                   className="w-full h-auto rounded-lg object-cover"

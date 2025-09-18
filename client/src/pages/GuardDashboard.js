@@ -12,6 +12,7 @@ import SuccessModal from "../components/SuccessModal";
 import { formatDate, formatDateTime } from "../utils/dateUtils";
 import SearchBar from "../components/SearchBar";
 import ContextualHelp from "../components/ContextualHelp";
+import { getImageUrl } from '../utils/urlHelper';
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -162,13 +163,7 @@ const GuardDashboard = () => {
   // Get the proper image URL
   const getImageUrl = (imagePath) => {
     console.log(imagePath);
-    if (!imagePath) return "/assets/images/placeholder.png";
-
-    // If it's a full URL already, return as is
-    if (imagePath.startsWith("http")) return imagePath;
-
-    // Otherwise, prepend the server URL
-    return "http://localhost:5000" + imagePath;
+    return getImageUrl(imagePath) || "/assets/images/placeholder.png";
   };
 
   // Get claim count for an item

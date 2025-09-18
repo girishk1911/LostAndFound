@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import ItemCard from '../components/ItemCard';
 import { getRecentItems } from '../services/itemService';
 import axios from 'axios';
+import config from '../config/config';
 
 const Home = () => {
   const [recentItems, setRecentItems] = useState([]);
@@ -60,7 +61,7 @@ const Home = () => {
     const fetchContributors = async () => {
       try {
         // Fetch items with contributor information that are within the display period
-        const apiUrl = 'http://localhost:5000/api/items/contributors';
+        const apiUrl = `${config.API_URL}/api/items/contributors`;
         const response = await axios.get(apiUrl);
         setContributors(response.data || []);
       } catch (err) {
